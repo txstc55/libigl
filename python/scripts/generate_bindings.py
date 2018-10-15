@@ -20,6 +20,7 @@ from joblib import Parallel, delayed
 from multiprocessing import cpu_count
 from mako.template import Template
 from parser import parse
+import inflection
 
 
 # http://stackoverflow.com/questions/3207219/how-to-list-all-files-of-a-directory-in-python
@@ -60,10 +61,12 @@ def map_parameter_types(name, cpp_type, parsed_types, errors, enum_types):
     # Types to map
     #    const int dim -> const int& dim ?
     result = []
+    input_par = False
 
     if cpp_type.startswith("const"):
-        result.append("const ")
+        #result.append("const ")
         cpp_type = cpp_type[6:]  # Strip const part
+        input_par = True
 
     # Handle special types
     skip_parsing = False
@@ -87,16 +90,16 @@ def map_parameter_types(name, cpp_type, parsed_types, errors, enum_types):
     if len(parsed_types) == 0:
         errors.append("Empty typechain: %s" % cpp_type)
         if cpp_type == "int" or cpp_type == "bool" or cpp_type == "unsigned int":
-            return cpp_type, True
+            return cpp_type, True, input_par
         else:
-            return cpp_type, False
+            return cpp_type, False, input_par
 
     # print(parsed_types, cpp_type)
     if not skip_parsing:
         for i, t in enumerate(parsed_types):
 
             if t == "Eigen":
-                result.append("Eigen::")
+                #result.append("Eigen::")
                 continue
             if t == "std":
                 result.append("std::")
@@ -104,11 +107,11 @@ def map_parameter_types(name, cpp_type, parsed_types, errors, enum_types):
 
             if t == "PlainObjectBase" or t == "MatrixBase":
                 if name == "F":
-                    result.append("MatrixXi&")
+                    result.append("dense_i32, dense_i64")
                 elif name == "V":
-                    result.append("MatrixXd&")
+                    result.append("dense_f32, dense_f64")
                 else:
-                    result.append("MatrixXd&")
+                    result.append("dense_f32, dense_f64")
                 break
             if t == "MatrixXi" or t == "VectorXi":
                 result.append("MatrixXi&")
@@ -118,11 +121,11 @@ def map_parameter_types(name, cpp_type, parsed_types, errors, enum_types):
                 break
             if t == "SparseMatrix" and len(parsed_types) >= i + 2 and (
                     parsed_types[i + 1] == "Scalar" or parsed_types[i + 1] == "T"):
-                result.append("SparseMatrix<double>&")
+                result.append("Sparse_f64")
                 break
             if t == "SparseVector" and len(parsed_types) >= i + 2 and (parsed_types[i + 1] == "Scalar" or parsed_types[
                     i + 1] == "T"):
-                result.append("SparseMatrix<double>&")
+                result.append("Sparse_f64")
                 break
 
             if t == "bool" or t == "int" or t == "double" or t == "unsigned" or t == "string":
@@ -134,14 +137,13 @@ def map_parameter_types(name, cpp_type, parsed_types, errors, enum_types):
 
             else:
                 errors.append("Unknown typechain: %s" % cpp_type)
-                return cpp_type, False
+                return cpp_type, False, input_par
 
 
-    return "".join(result), True
+    return "".join(result), True, input_par
 
 
 if __name__ == '__main__':
-
     if len(sys.argv) != 2:
         print('Syntax: %s <path_to_c++_files>' % sys.argv[0])
         exit(-1)
@@ -168,6 +170,11 @@ if __name__ == '__main__':
 
     # Add all python binding files to a list
     implemented_names = list(mapping.keys())  # ["point_mesh_squared_distance"]
+    #print(implemented_names, "_readOFF" in implemented_names)
+#    implemented_names = ["_grad"]
+
+
+    #implemented_names = ["_readOFF", "_readOBJ"]
     implemented_names.sort()
     single_postfix = ""
     single_prefix = ""
@@ -185,7 +192,7 @@ if __name__ == '__main__':
 
     # Parse c++ header files
     print("Parsing header files...")
-    load_headers = False
+    load_headers = True
     if load_headers:
         with open("headers.dat", 'rb') as fs:
             dicts = pickle.load(fs)
@@ -211,8 +218,8 @@ if __name__ == '__main__':
         shutil.rmtree("generated")
     except:
         pass # Ignore missing generated directory
-    os.makedirs("generated/complete")
-    os.mkdir("generated/partial")
+    os.makedirs("generated/complete", exist_ok=True)
+    os.makedirs("generated/partial", exist_ok=True)
 
     print("Generating and writing binding files...")
     for idx, n in enumerate(implemented_names):
@@ -245,18 +252,37 @@ if __name__ == '__main__':
 
             # Collect functions to generate binding files
             for f in d["functions"]:
-                parameters = []
+                in_parameters = []
+                out_parameters = []
                 correct_function = True
                 f_errors = []
                 for p in f.parameters:
-                    typ, correct = map_parameter_types(p[0], p[1], p[2], f_errors, enum_types)
+                    #print(f, p)
+                    typ, correct, input_par = map_parameter_types(p[0], p[1], p[2], f_errors, enum_types)
                     correct_function &= correct
-                    parameters.append({"name": p[0], "type": typ})
+                    if input_par:
+                        in_parameters.append({"name": inflection.underscore(p[0]), "type": typ})
+                    else:
+                        out_parameters.append({"name": inflection.underscore(p[0]), "type": typ})
+#                if len(out_parameters) > 0:
+#                    dtype_def = 'npe_default_arg(dtype, npe::dtype, "float64")'
+#                else:
+#                    dtype_def = ''
+                all_parameters = in_parameters.copy()
+                all_parameters.extend(out_parameters)
 
-                if correct_function and len(parameters) > 0: #TODO add constants like EPS
-                    correct_functions.append({"parameters": parameters, "namespaces": d["namespaces"], "name": f.name})
-                elif len(parameters) > 0:
-                    incorrect_functions.append({"parameters": parameters, "namespaces": d["namespaces"], "name": f.name})
+                docstring = "See " + f.name + " for the documentation."
+                if f.documentation:
+                    docstring = "\nParameters\n----------\n\n\nReturns\n-------\n\n\nSee also\n--------\n\n\n"
+                    docstring += "Notes\n-----\nNone\n\nExamples\n--------\n\n"
+                    docstring += f.documentation
+                    docstring = docstring.replace("//", "")
+
+                dici = {"in_parameters": in_parameters, "out_parameters": out_parameters, "all_parameters": all_parameters, "namespaces": d["namespaces"], "name": inflection.underscore(f.name), "orgname":f.name, "docstring": docstring}
+                if correct_function and len(all_parameters) > 0: #TODO add constants like EPS
+                    correct_functions.append(dici)
+                elif len(all_parameters) > 0:
+                    incorrect_functions.append(dici)
                     errors["incorrect"].append("Incorrect function in %s: %s, %s\n" % (n, f.name, ",".join(f_errors)))
                 else:
                     errors["various"].append("Function without pars in %s: %s, %s\n" % (n, f.name, ","
@@ -265,21 +291,23 @@ if __name__ == '__main__':
             # Write binding files
             try:
                 tpl = Template(filename='basic_function.mako')
-                rendered = tpl.render(functions=correct_functions, enums=enums)
+                #print(correct_functions)
+                includes = ["<npe.h>", "<typedefs.h>"]
+                rendered = tpl.render(functions=correct_functions, enums=enums, includes=includes)
                 tpl1 = Template(filename='basic_function.mako')
-                rendered1 = tpl.render(functions=incorrect_functions, enums=enums)
+                rendered1 = tpl.render(functions=incorrect_functions, enums=enums, includes=[])
                 path = "generated/"
                 if len(incorrect_functions) == 0 and (len(correct_functions) != 0 or len(enums) != 0):
                     path += "complete/"
-                    with open(path + single_prefix + "py_" + n + ".cpp", 'w') as fs:
+                    with open(path + single_prefix + n[1:] + ".cpp", 'w') as fs:
                         fs.write(rendered)
                     files["complete"].append(n)
                 else:
                     path += "partial/"
-                    with open(path + single_prefix + "py_" + n + ".cpp", 'w') as fs:
-                        fs.write("// COMPLETE BINDINGS ========================\n")
+                    with open(path + single_prefix + n[1:] + ".cpp", 'w') as fs:
+                        #fs.write("// COMPLETE BINDINGS ========================\n")
                         fs.write(rendered)
-                        fs.write("\n\n\n\n// INCOMPLETE BINDINGS ========================\n")
+                        fs.write("\n\n\n\n")#// INCOMPLETE BINDINGS ========================\n")
                         fs.write(rendered1)
 
                     if len(correct_functions) != 0:
@@ -288,6 +316,7 @@ if __name__ == '__main__':
                         files["errors"].append(n)
 
             except Exception as e:
+                print(e)
                 files["errors"].append(n)
                 errors["render"].append("Template rendering failed:" + n + " " + str(correct_functions) + ", incorrect "
                                                                                                 "functions are " + str(

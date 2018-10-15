@@ -1,46 +1,53 @@
-% for enum in enums:
-py::enum_<\
-% for n in enum['namespaces']:
-${n}::\
+% for inc in includes:
+#include ${inc}
 % endfor
-${enum['name']}>(m, "${enum['name']}")
-% for c in enum['constants']:
-    .value("${c}", \
-% for n in enum['namespaces']:
-${n}::\
-% endfor
-${c})
-% endfor
-    .export_values();
-% endfor
-
-
 % for func in functions:
-m.def("${func['name']}", []
-(
-  % for p in func['parameters'][:-1]:
-  ${p['type']} ${p['name']},
-  % endfor
-  ${func['parameters'][-1]['type']} ${func['parameters'][-1]['name']}
-)
-{
-  return \
-% for n in func['namespaces']:
-${n}::\
+#include <igl/${func['orgname']}.h>
+
+const char* ds_${func['name']} = R"igl_Qu8mg5v7(
+${func['docstring']}
+)igl_Qu8mg5v7";
+
+npe_function(${func['name']})
+npe_doc(ds_${func['name']})
+
+% for p in func['in_parameters'][:]:
+npe_arg(${p['name']}, ${p['type']})
 % endfor
-${func['name']}(\
-% for p in func['parameters'][:-1]:
+
+
+npe_begin_code()
+
+% for p in func['out_parameters'][:]:
+% if 'dense' in p['type']:
+  EigenDense<npe_Scalar_> ${p['name']};
+% elif 'sparse' in p['type']:
+  EigenSparse<npe_Scalar_> ${p['name']};
+% else:
+  ${p['type']} ${p['name']};
+%endif
+% endfor
+% for n in func['namespaces']:
+  ${n}::\
+% endfor
+${func['orgname']}(\
+% for p in func['all_parameters'][:-1]:
 ${p['name']}, \
 % endfor
-${func['parameters'][-1]['name']});
-}, __doc_\
-% for n in func['namespaces']:
-${n}_\
+${func['all_parameters'][-1]['name']});
+% if len(func['out_parameters']) > 1:
+  return std::make_tuple(\
+% for p in func['out_parameters'][:-1]:
+npe::move(${p['name']}), \
 % endfor
-${func['name']},
-% for p in func['parameters'][:-1]:
-py::arg("${p['name']}"), \
-% endfor
-py::arg("${func['parameters'][-1]['name']}"));
+npe::move(${func['out_parameters'][-1]['name']}));
+% elif len(func['out_parameters']) == 1:
+  return npe::move(${func['out_parameters'][0]['name']});
+% else:
+  return ;
+% endif
 
+npe_end_code()
 % endfor
+
+

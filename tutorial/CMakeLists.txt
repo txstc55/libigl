@@ -1,16 +1,14 @@
 cmake_minimum_required(VERSION 3.1)
 project(libigl_tutorials)
-message(STATUS "CMAKE_C_COMPILER: ${CMAKE_C_COMPILER}")
-message(STATUS "CMAKE_CXX_COMPILER: ${CMAKE_CXX_COMPILER}")
 
-### conditionally compile certain modules depending on libraries found on the system
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/../cmake)
-
-### Adding libIGL: choose the path to your local copy libIGL
-if(NOT TARGET igl_common)
-  include(libigl)
-else()
-  include(LibiglDownloadExternal)
+### conditionally compile certain modules depending on libraries found on the system		
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/../cmake)		
+	
+### Adding libIGL: choose the path to your local copy libIGL		
+if(NOT TARGET igl_common)		
+  include(libigl)		
+else()		
+  include(LibiglDownloadExternal)		
 endif()
 
 ### Download data
@@ -42,6 +40,15 @@ target_include_directories(tutorials INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 # Chapter 1
 if(TUTORIALS_CHAPTER1)
   add_subdirectory("101_FileIO")
+endif()
+
+#######################
+if(NOT (LIBIGL_WITH_OPENGL AND LIBIGL_WITH_OPENGL_GLFW) )
+  message(WARNING "Most tutorial executables depend on OpenGL and glfw. Use `cmake ../ -DLIBIGL_WITH_OPENGL=ON -DLIBIGL_WITH_OPENGL_GLFW=ON`")
+  return()
+endif()
+
+if(TUTORIALS_CHAPTER1)
   add_subdirectory("102_DrawMesh")
   add_subdirectory("103_Events")
   add_subdirectory("104_Colors")
@@ -144,5 +151,3 @@ if(TUTORIALS_CHAPTER7)
   endif()
   add_subdirectory("715_MeshImplicitFunction")
 endif()
-
-

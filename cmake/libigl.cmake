@@ -32,14 +32,9 @@ option(LIBIGL_WITH_OPENGL_GLFW_IMGUI "Use ImGui"                    OFF)
 option(LIBIGL_WITH_PNG               "Use PNG"                      OFF)
 option(LIBIGL_WITH_TETGEN            "Use Tetgen"                   OFF)
 option(LIBIGL_WITH_TRIANGLE          "Use Triangle"                 OFF)
-option(LIBIGL_WITH_VIEWER            "Use OpenGL viewer"            OFF)
 option(LIBIGL_WITH_XML               "Use XML"                      OFF)
 option(LIBIGL_WITH_PYTHON            "Use Python"                   OFF)
 option(LIBIGL_WITHOUT_COPYLEFT       "Disable Copyleft libraries"   OFF)
-
-if(LIBIGL_WITH_VIEWER AND (NOT LIBIGL_WITH_OPENGL_GLFW OR NOT LIBIGL_WITH_OPENGL) )
-  message(FATAL_ERROR "LIBIGL_WITH_VIEWER=ON requires LIBIGL_WITH_OPENGL_GLFW=ON and LIBIGL_WITH_OPENGL=ON")
-endif()
 
 ################################################################################
 
@@ -90,6 +85,11 @@ endif()
 if(BUILD_SHARED_LIBS)
   # Generate position independent code
   set_target_properties(igl_common PROPERTIES INTERFACE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
+if(UNIX)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 endif()
 
 # Eigen

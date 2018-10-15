@@ -10,10 +10,10 @@
 #include "verbose.h"
 #include <algorithm>
 
-template <typename Index, typename IndexVector>
+template <typename DerivedF, typename IndexT>
 IGL_INLINE void igl::adjacency_list(
-    const Eigen::PlainObjectBase<Index>  & F,
-    std::vector<std::vector<IndexVector> >& A,
+    const Eigen::MatrixBase<DerivedF>  & F,
+    std::vector<std::vector<IndexT> >& A,
     bool sorted)
 {
   A.clear(); 
@@ -46,7 +46,7 @@ IGL_INLINE void igl::adjacency_list(
     // Loop over faces
     
     // for every vertex v store a set of ordered edges not incident to v that belongs to triangle incident on v.
-    std::vector<std::vector<std::vector<int> > > SR; 
+    std::vector<std::vector<std::vector<typename DerivedF::Scalar> > > SR;
     SR.resize(A.size());
     
     for(int i = 0;i<F.rows();i++)
@@ -60,7 +60,7 @@ IGL_INLINE void igl::adjacency_list(
         // Get index of opposing vertex v
         int v = F(i,(j+2)%F.cols());
         
-        std::vector<int> e(2);
+        std::vector<typename DerivedF::Scalar> e(2);
         e[0] = d;
         e[1] = v;
         SR[s].push_back(e);
@@ -69,10 +69,10 @@ IGL_INLINE void igl::adjacency_list(
     
     for(int v=0; v<(int)SR.size();++v)
     {
-      std::vector<IndexVector>& vv = A.at(v);
-      std::vector<std::vector<int> >& sr = SR[v];
+      std::vector<IndexT>& vv = A.at(v);
+      std::vector<std::vector<typename DerivedF::Scalar> >& sr = SR[v];
       
-      std::vector<std::vector<int> > pn = sr;
+      std::vector<std::vector<typename DerivedF::Scalar> > pn = sr;
       
       // Compute previous/next for every element in sr
       for(int i=0;i<(int)sr.size();++i)
@@ -125,37 +125,6 @@ IGL_INLINE void igl::adjacency_list(
       }
     }
   }
-}
-
-template <typename Index>
-IGL_INLINE void igl::adjacency_list(
-  const std::vector<std::vector<Index> > & F,
-  std::vector<std::vector<Index> >& A)
-{
-  A.clear(); 
-  A.resize(F.maxCoeff()+1);
-  
-  // Loop over faces
-  for(int i = 0;i<F.size();i++)
-  {
-    // Loop over this face
-    for(int j = 0;j<F[i].size();j++)
-    {
-      // Get indices of edge: s --> d
-      int s = F(i,j);
-      int d = F(i,(j+1)%F[i].size());
-      A.at(s).push_back(d);
-      A.at(d).push_back(s);
-    }
-  }
-  
-  // Remove duplicates
-  for(int i=0; i<(int)A.size();++i)
-  {
-    std::sort(A[i].begin(), A[i].end());
-    A[i].erase(std::unique(A[i].begin(), A[i].end()), A[i].end());
-  }
-  
 }
 
 #ifdef IGL_STATIC_LIBRARY

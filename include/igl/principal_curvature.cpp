@@ -782,8 +782,8 @@ template <
   typename DerivedPV2,
   typename Index>
 IGL_INLINE void igl::principal_curvature(
-  const Eigen::PlainObjectBase<DerivedV>& V,
-  const Eigen::PlainObjectBase<DerivedF>& F,
+  const Eigen::MatrixBase<DerivedV>& V,
+  const Eigen::MatrixBase<DerivedF>& F,
   Eigen::PlainObjectBase<DerivedPD1>& PD1,
   Eigen::PlainObjectBase<DerivedPD2>& PD2,
   Eigen::PlainObjectBase<DerivedPV1>& PV1,
@@ -867,8 +867,8 @@ template <
   typename DerivedPV1,
   typename DerivedPV2>
 IGL_INLINE void igl::principal_curvature(
-  const Eigen::PlainObjectBase<DerivedV>& V,
-  const Eigen::PlainObjectBase<DerivedF>& F,
+  const Eigen::MatrixBase<DerivedV>& V,
+  const Eigen::MatrixBase<DerivedF>& F,
   Eigen::PlainObjectBase<DerivedPD1>& PD1,
   Eigen::PlainObjectBase<DerivedPD2>& PD2,
   Eigen::PlainObjectBase<DerivedPV1>& PV1,

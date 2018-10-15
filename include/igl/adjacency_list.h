@@ -29,19 +29,11 @@ namespace igl
   //   adjacency_list(F,A);
   //
   // See also: edges, cotmatrix, diag
-  template <typename Index, typename IndexVector>
+  template <typename DerivedF, typename IndexT>
   IGL_INLINE void adjacency_list(
-    const Eigen::PlainObjectBase<Index> & F, 
-    std::vector<std::vector<IndexVector> >& A,
+    const Eigen::MatrixBase<DerivedF> & F,
+    std::vector<std::vector<IndexT> >& A,
     bool sorted = false);
-
-  // Variant that accepts polygonal faces. 
-  // Each element of F is a set of indices of a polygonal face.
-  template <typename Index>
-  IGL_INLINE void adjacency_list(
-    const std::vector<std::vector<Index> > & F,
-    std::vector<std::vector<Index> >& A);
-
 }
 
 #ifndef IGL_STATIC_LIBRARY

@@ -23,7 +23,7 @@ namespace igl
   template <typename DerivedA, typename DerivedB>
   IGL_INLINE void normalize_row_sums(
     const Eigen::MatrixBase<DerivedA>& A,
-    Eigen::MatrixBase<DerivedB> & B);
+    Eigen::PlainObjectBase<DerivedB> & B);
 }
 
 #ifndef IGL_STATIC_LIBRARY

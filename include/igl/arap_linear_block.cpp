@@ -10,10 +10,10 @@
 #include "cotmatrix_entries.h"
 #include <Eigen/Dense>
 
-template <typename MatV, typename MatF, typename Scalar>
+template <typename DerivedV, typename DerivedF, typename Scalar>
 IGL_INLINE void igl::arap_linear_block(
-  const MatV & V,
-  const MatF & F,
+  const Eigen::MatrixBase<DerivedV>& V,
+  const Eigen::MatrixBase<DerivedF>& F,
   const int d,
   const igl::ARAPEnergyType energy,
   Eigen::SparseMatrix<Scalar> & Kd)
@@ -36,10 +36,10 @@ IGL_INLINE void igl::arap_linear_block(
 }
 
 
-template <typename MatV, typename MatF, typename Scalar>
+template <typename DerivedV, typename DerivedF, typename Scalar>
 IGL_INLINE void igl::arap_linear_block_spokes(
-  const MatV & V,
-  const MatF & F,
+  const Eigen::MatrixBase<DerivedV>& V,
+  const Eigen::MatrixBase<DerivedF>& F,
   const int d,
   Eigen::SparseMatrix<Scalar> & Kd)
 {
@@ -101,10 +101,10 @@ IGL_INLINE void igl::arap_linear_block_spokes(
   Kd.makeCompressed();
 }
 
-template <typename MatV, typename MatF, typename Scalar>
+template <typename DerivedV, typename DerivedF, typename Scalar>
 IGL_INLINE void igl::arap_linear_block_spokes_and_rims(
-  const MatV & V,
-  const MatF & F,
+  const Eigen::MatrixBase<DerivedV>& V,
+  const Eigen::MatrixBase<DerivedF>& F,
   const int d,
   Eigen::SparseMatrix<Scalar> & Kd)
 {
@@ -183,10 +183,10 @@ IGL_INLINE void igl::arap_linear_block_spokes_and_rims(
   Kd.makeCompressed();
 }
 
-template <typename MatV, typename MatF, typename Scalar>
+template <typename DerivedV, typename DerivedF, typename Scalar>
 IGL_INLINE void igl::arap_linear_block_elements(
-  const MatV & V,
-  const MatF & F,
+  const Eigen::MatrixBase<DerivedV>& V,
+  const Eigen::MatrixBase<DerivedF>& F,
   const int d,
   Eigen::SparseMatrix<Scalar> & Kd)
 {

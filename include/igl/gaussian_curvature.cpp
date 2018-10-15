@@ -11,8 +11,8 @@
 #include <iostream>
 template <typename DerivedV, typename DerivedF, typename DerivedK>
 IGL_INLINE void igl::gaussian_curvature(
-  const Eigen::PlainObjectBase<DerivedV>& V,
-  const Eigen::PlainObjectBase<DerivedF>& F,
+  const Eigen::MatrixBase<DerivedV>& V,
+  const Eigen::MatrixBase<DerivedF>& F,
   Eigen::PlainObjectBase<DerivedK> & K)
 {
   using namespace Eigen;
@@ -23,8 +23,8 @@ IGL_INLINE void igl::gaussian_curvature(
     DerivedF::RowsAtCompileTime,
     DerivedF::ColsAtCompileTime> A;
   internal_angles(V,F,A);
-  K.resize(V.rows(),1);
-  K.setConstant(V.rows(),1,2.*PI);
+  K.derived().resize(V.rows(),1);
+  K.derived().setConstant(V.rows(),1,2.*PI);
   assert(A.rows() == F.rows());
   assert(A.cols() == F.cols());
   assert(K.rows() == V.rows());

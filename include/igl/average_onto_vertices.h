@@ -21,11 +21,12 @@ namespace igl
   // 
   // Output:
   // SV: scalar field defined on vertices
-  template<typename DerivedV,typename DerivedF,typename DerivedS>
-  IGL_INLINE void average_onto_vertices(const Eigen::MatrixBase<DerivedV> &V,
+  template<typename DerivedV,typename DerivedF,typename DerivedS, typename DerivedSV>
+  IGL_INLINE void average_onto_vertices(
+    const Eigen::MatrixBase<DerivedV> &V,
     const Eigen::MatrixBase<DerivedF> &F,
     const Eigen::MatrixBase<DerivedS> &S,
-    Eigen::MatrixBase<DerivedS> &SV);
+    Eigen::PlainObjectBase<DerivedSV> &SV);
 }
 
 #ifndef IGL_STATIC_LIBRARY

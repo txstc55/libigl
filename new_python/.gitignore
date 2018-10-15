@@ -1,0 +1,4 @@
+scripts/generated
+scripts/generated_all
+scripts/__pycache__
+build

@@ -103,7 +103,7 @@ IGL_INLINE void igl::boundary_facets(
 
 template <typename DerivedT, typename DerivedF>
 IGL_INLINE void igl::boundary_facets(
-  const Eigen::PlainObjectBase<DerivedT>& T,
+  const Eigen::MatrixBase<DerivedT>& T,
   Eigen::PlainObjectBase<DerivedF>& F)
 {
   assert(T.cols() == 0 || T.cols() == 4 || T.cols() == 3);
@@ -119,7 +119,7 @@ IGL_INLINE void igl::boundary_facets(
 
 template <typename DerivedT, typename Ret>
 Ret igl::boundary_facets(
-  const Eigen::PlainObjectBase<DerivedT>& T)
+  const Eigen::MatrixBase<DerivedT>& T)
 {
   Ret F;
   igl::boundary_facets(T,F);

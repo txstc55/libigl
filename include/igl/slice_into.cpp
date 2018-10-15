@@ -7,18 +7,21 @@
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "slice_into.h"
 #include "colon.h"
+#include "traits.h"
 
 // Bug in unsupported/Eigen/SparseExtra needs iostream first
 #include <iostream>
 #include <unsupported/Eigen/SparseExtra>
 
-template <typename T>
+template <typename T, typename DerivedRC>
 IGL_INLINE void igl::slice_into(
   const Eigen::SparseMatrix<T>& X,
-  const Eigen::Matrix<int,Eigen::Dynamic,1> & R,
-  const Eigen::Matrix<int,Eigen::Dynamic,1> & C,
+  const Eigen::MatrixBase<DerivedRC> & R,
+  const Eigen::MatrixBase<DerivedRC> & C,
   Eigen::SparseMatrix<T>& Y)
 {
+  static_assert(igl::is_column_vector<DerivedRC>::value, "slice_into R and C variables must be column vectors");
+  static_assert(igl::is_index_matrix<DerivedRC>::value, "slice_into R and C variables must be vectors of signed integer types");
 
 #ifndef NDEBUG
   int xm = X.rows();
@@ -47,13 +50,16 @@ IGL_INLINE void igl::slice_into(
   Y = Eigen::SparseMatrix<T>(dyn_Y);
 }
 
-template <typename DerivedX, typename DerivedY>
+template <typename DerivedX, typename DerivedY, typename DerivedRC>
 IGL_INLINE void igl::slice_into(
-  const Eigen::DenseBase<DerivedX> & X,
-  const Eigen::Matrix<int,Eigen::Dynamic,1> & R,
-  const Eigen::Matrix<int,Eigen::Dynamic,1> & C,
+  const Eigen::MatrixBase<DerivedX> & X,
+  const Eigen::MatrixBase<DerivedRC> & R,
+  const Eigen::MatrixBase<DerivedRC> & C,
   Eigen::PlainObjectBase<DerivedY> & Y)
 {
+  static_assert(igl::is_column_vector<DerivedRC>::value, "slice_into R and C variables must be column vectors");
+  static_assert(igl::is_index_matrix<DerivedRC>::value, "slice_into R and C variables must be vectors of signed integer types");
+
 
   int xm = X.rows();
   int xn = X.cols();
@@ -80,14 +86,17 @@ IGL_INLINE void igl::slice_into(
   }
 }
 
-template <typename MatX, typename MatY>
+template <typename DerivedX, typename DerivedY, typename DerivedR>
 IGL_INLINE void igl::slice_into(
-  const MatX& X,
-  const Eigen::Matrix<int,Eigen::Dynamic,1> & R,
+  const Eigen::MatrixBase<DerivedX> & X,
+  const Eigen::MatrixBase<DerivedR> & R,
   const int dim,
-  MatY& Y)
+  Eigen::PlainObjectBase<DerivedY>& Y)
 {
-  Eigen::VectorXi C;
+  static_assert(igl::is_column_vector<DerivedR>::value, "slice_into R variable must be column vectors");
+  static_assert(igl::is_index_matrix<DerivedR>::value, "slice_into R variable must be vectors of signed integer types");
+
+  Eigen::Matrix<typename DerivedX::Scalar, Eigen::Dynamic, 1> C;
   switch(dim)
   {
     case 1:
@@ -114,14 +123,17 @@ IGL_INLINE void igl::slice_into(
   }
 }
 
-template <typename DerivedX, typename DerivedY>
+template <typename DerivedX, typename DerivedR, typename DerivedY>
 IGL_INLINE void igl::slice_into(
-  const Eigen::DenseBase<DerivedX> & X,
-  const Eigen::Matrix<int,Eigen::Dynamic,1> & R,
+  const Eigen::MatrixBase<DerivedX> & X,
+  const Eigen::MatrixBase<DerivedR> & R,
   Eigen::PlainObjectBase<DerivedY> & Y)
 {
+  static_assert(igl::is_column_vector<DerivedR>::value, "slice_into R variable must be column vectors");
+  static_assert(igl::is_index_matrix<DerivedR>::value, "slice_into R variable must be vectors of signed integer types");
+
   // phony column indices
-  Eigen::Matrix<int,Eigen::Dynamic,1> C;
+  Eigen::Matrix<typename DerivedR::Scalar, Eigen::Dynamic, 1> C;
   C.resize(1);
   C(0) = 0;
   return igl::slice_into(X,R,C,Y);

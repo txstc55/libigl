@@ -44,8 +44,8 @@ IGL_INLINE void igl::sort(
   // dim must be 2 or 1
   assert(dim == 1 || dim == 2);
   // Resize output
-  Y.resizeLike(X);
-  IX.resizeLike(X);
+  Y.derived().resizeLike(X);
+  IX.derived().resizeLike(X);
   // idea is to process each column (or row) as a std vector
   // loop over columns (or rows)
   for(int i = 0; i<num_outer;i++)
@@ -107,8 +107,8 @@ IGL_INLINE void igl::sort_new(
   // dim must be 2 or 1
   assert(dim == 1 || dim == 2);
   // Resize output
-  Y.resizeLike(X);
-  IX.resizeLike(X);
+  Y.derived().resizeLike(X);
+  IX.derived().resizeLike(X);
   // idea is to process each column (or row) as a std vector
   // loop over columns (or rows)
   for(int i = 0; i<num_outer;i++)
@@ -169,7 +169,7 @@ IGL_INLINE void igl::sort2(
   int num_inner = (dim == 1 ? X.rows() : X.cols() );
   assert(num_inner == 2);(void)num_inner;
   typedef typename DerivedIX::Scalar Index;
-  IX.resizeLike(X);
+  IX.derived().resizeLike(X);
   if(dim==1)
   {
     IX.row(0).setConstant(0);// = DerivedIX::Zero(1,IX.cols());
@@ -206,7 +206,7 @@ IGL_INLINE void igl::sort3(
   using namespace std;
   typedef typename DerivedY::Scalar YScalar;
   Y = X.derived().template cast<YScalar>();
-  Y.resizeLike(X);
+  Y.derived().resizeLike(X);
   for(int j=0;j<X.cols();j++)for(int i=0;i<X.rows();i++)Y(i,j)=(YScalar)X(i,j);
 
   // get number of columns (or rows)
@@ -215,7 +215,7 @@ IGL_INLINE void igl::sort3(
   int num_inner = (dim == 1 ? X.rows() : X.cols() );
   assert(num_inner == 3);(void)num_inner;
   typedef typename DerivedIX::Scalar Index;
-  IX.resizeLike(X);
+  IX.derived().resizeLike(X);
   if(dim==1)
   {
     IX.row(0).setConstant(0);// = DerivedIX::Zero(1,IX.cols());

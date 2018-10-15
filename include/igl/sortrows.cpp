@@ -51,7 +51,7 @@
 
 template <typename DerivedX, typename DerivedIX>
 IGL_INLINE void igl::sortrows(
-  const Eigen::DenseBase<DerivedX>& X,
+  const Eigen::MatrixBase<DerivedX>& X,
   const bool ascending,
   Eigen::PlainObjectBase<DerivedX>& Y,
   Eigen::PlainObjectBase<DerivedIX>& IX)

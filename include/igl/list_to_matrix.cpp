@@ -22,7 +22,7 @@ IGL_INLINE bool igl::list_to_matrix(const std::vector<std::vector<T > > & V,Eige
   int m = V.size();
   if(m == 0)
   {
-    M.resize(0,0);
+    M.derived().resize(0,0);
     return true;
   }
   // number of columns
@@ -33,7 +33,7 @@ IGL_INLINE bool igl::list_to_matrix(const std::vector<std::vector<T > > & V,Eige
   }
   assert(n != -1);
   // Resize output
-  M.resize(m,n);
+  M.derived().resize(m,n);
 
   // Loop over rows
   for(int i = 0;i<m;i++)
@@ -56,7 +56,7 @@ IGL_INLINE bool igl::list_to_matrix(
   Eigen::PlainObjectBase<Derived>& M)
 {
   const int m = V.size();
-  M.resize(m,n);
+  M.derived().resize(m,n);
   for(int i = 0;i<m;i++)
   {
     const auto & row = V[i];
@@ -88,23 +88,23 @@ IGL_INLINE bool igl::list_to_matrix(const std::vector<T > & V,Eigen::PlainObject
     //return false;
     if(Derived::ColsAtCompileTime == 1)
     {
-      M.resize(0,1);
+      M.derived().resize(0,1);
     }else if(Derived::RowsAtCompileTime == 1)
     {
-      M.resize(1,0);
+      M.derived().resize(1,0);
     }else
     {
-      M.resize(0,0);
+      M.derived().resize(0,0);
     }
     return true;
   }
   // Resize output
   if(Derived::RowsAtCompileTime == 1)
   {
-    M.resize(1,m);
+    M.derived().resize(1,m);
   }else
   {
-    M.resize(m,1);
+    M.derived().resize(m,1);
   }
 
   // Loop over rows

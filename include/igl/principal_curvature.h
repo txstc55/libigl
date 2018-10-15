@@ -12,8 +12,6 @@
 #include <Eigen/Geometry>
 #include <Eigen/Dense>
 
-#include <vector>
-
 #include "igl_inline.h"
 //#include <igl/cotmatrix.h>
 //#include <igl/writeOFF.h>
@@ -37,9 +35,6 @@ namespace igl
   //   PV1 #V by 1 maximal curvature value for each vertex.
   //   PV2 #V by 1 minimal curvature value for each vertex.
   //
-  // Return value:
-  //   Function returns vector of indices of bad vertices if any.
-  //
   // See also: average_onto_faces, average_onto_vertices
   //
   // This function has been developed by: Nikolas De Giorgis, Luigi Rocca and Enrico Puppo.
@@ -55,34 +50,14 @@ template <
   typename DerivedPV1,
   typename DerivedPV2>
 IGL_INLINE void principal_curvature(
-  const Eigen::PlainObjectBase<DerivedV>& V,
-  const Eigen::PlainObjectBase<DerivedF>& F,
+  const Eigen::MatrixBase<DerivedV>& V,
+  const Eigen::MatrixBase<DerivedF>& F,
   Eigen::PlainObjectBase<DerivedPD1>& PD1,
   Eigen::PlainObjectBase<DerivedPD2>& PD2,
   Eigen::PlainObjectBase<DerivedPV1>& PV1,
   Eigen::PlainObjectBase<DerivedPV2>& PV2,
   unsigned radius = 5,
   bool useKring = true);
-
-template <
-  typename DerivedV,
-  typename DerivedF,
-  typename DerivedPD1,
-  typename DerivedPD2,
-  typename DerivedPV1,
-  typename DerivedPV2,
-  typename Index>
-IGL_INLINE void principal_curvature(
-  const Eigen::PlainObjectBase<DerivedV>& V,
-  const Eigen::PlainObjectBase<DerivedF>& F,
-  Eigen::PlainObjectBase<DerivedPD1>& PD1,
-  Eigen::PlainObjectBase<DerivedPD2>& PD2,
-  Eigen::PlainObjectBase<DerivedPV1>& PV1,
-  Eigen::PlainObjectBase<DerivedPV2>& PV2,
-  std::vector<Index>& bad_vertices,
-  unsigned radius = 5,
-  bool useKring = true);
-
 }
 
 

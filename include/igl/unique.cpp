@@ -115,7 +115,7 @@ IGL_INLINE void igl::unique(
 // Obsolete slow version converting to vectors
 // template <typename DerivedA, typename DerivedIA, typename DerivedIC>
 // IGL_INLINE void igl::unique_rows(
-//   const Eigen::PlainObjectBase<DerivedA>& A,
+//   const Eigen::MatrixBase<DerivedA>& A,
 //   Eigen::PlainObjectBase<DerivedA>& C,
 //   Eigen::PlainObjectBase<DerivedIA>& IA,
 //   Eigen::PlainObjectBase<DerivedIC>& IC)
@@ -156,7 +156,7 @@ IGL_INLINE void igl::unique(
 // Obsolete
 // template <typename DerivedA, typename DerivedIA, typename DerivedIC>
 // IGL_INLINE void igl::unique_rows_many(
-//   const Eigen::PlainObjectBase<DerivedA>& A,
+//   const Eigen::MatrixBase<DerivedA>& A,
 //   Eigen::PlainObjectBase<DerivedA>& C,
 //   Eigen::PlainObjectBase<DerivedIA>& IA,
 //   Eigen::PlainObjectBase<DerivedIC>& IC)

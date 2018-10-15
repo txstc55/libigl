@@ -23,8 +23,8 @@ template <
   typename DerivedB,
   typename DerivedC>
 IGL_INLINE void igl::cross(
-  const Eigen::PlainObjectBase<DerivedA> & A,
-  const Eigen::PlainObjectBase<DerivedB> & B,
+  const Eigen::MatrixBase<DerivedA> & A,
+  const Eigen::MatrixBase<DerivedB> & B,
   Eigen::PlainObjectBase<DerivedC> & C)
 {
   assert(A.cols() == 3 && "#cols should be 3");

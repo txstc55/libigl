@@ -12,11 +12,11 @@
 #include <vector>
 #include <iostream>
 
-template <typename DerivedF, typename DerivedC, typename AScalar>
+template <typename DerivedF, typename DerivedC, typename SparseT>
 IGL_INLINE void igl::orientable_patches(
-  const Eigen::PlainObjectBase<DerivedF> & F,
+  const Eigen::MatrixBase<DerivedF> & F,
   Eigen::PlainObjectBase<DerivedC> & C,
-  Eigen::SparseMatrix<AScalar> & A)
+  SparseT & A)
 {
   using namespace Eigen;
   using namespace std;
@@ -41,39 +41,39 @@ IGL_INLINE void igl::orientable_patches(
   // so that sortallE(i,:) = uE(IC(i),:)
   unique_rows(sortallE,uE,IA,IC);
   // uE2FT(e,f) = 1 means face f is adjacent to unique edge e
-  vector<Triplet<AScalar> > uE2FTijv(IC.rows());
+  vector<Triplet<typename SparseT::Scalar> > uE2FTijv(IC.rows());
   for(int e = 0;e<IC.rows();e++)
   {
-    uE2FTijv[e] = Triplet<AScalar>(e%F.rows(),IC(e),1);
+    uE2FTijv[e] = Triplet<typename SparseT::Scalar>(e%F.rows(),IC(e),1);
   }
-  SparseMatrix<AScalar> uE2FT(F.rows(),uE.rows());
+  SparseT uE2FT(F.rows(),uE.rows());
   uE2FT.setFromTriplets(uE2FTijv.begin(),uE2FTijv.end());
   // kill non-manifold edges
   for(int j=0; j<(int)uE2FT.outerSize();j++)
   {
     int degree = 0;
-    for(typename SparseMatrix<AScalar>::InnerIterator it (uE2FT,j); it; ++it)
+    for(typename SparseT::InnerIterator it (uE2FT,j); it; ++it)
     {
       degree++;
     }
     // Iterate over inside
     if(degree > 2)
     {
-      for(typename SparseMatrix<AScalar>::InnerIterator it (uE2FT,j); it; ++it)
+      for(typename SparseT::InnerIterator it (uE2FT,j); it; ++it)
       {
         uE2FT.coeffRef(it.row(),it.col()) = 0;
       }
     }
   }
   // Face-face Adjacency matrix
-  SparseMatrix<AScalar> uE2F;
+  SparseT uE2F;
   uE2F = uE2FT.transpose().eval();
   A = uE2FT*uE2F;
   // All ones
   for(int j=0; j<A.outerSize();j++)
   {
     // Iterate over inside
-    for(typename SparseMatrix<AScalar>::InnerIterator it (A,j); it; ++it)
+    for(typename SparseT::InnerIterator it (A,j); it; ++it)
     {
       if(it.value() > 1)
       {
@@ -91,7 +91,7 @@ IGL_INLINE void igl::orientable_patches(
 
 template <typename DerivedF, typename DerivedC>
 IGL_INLINE void igl::orientable_patches(
-  const Eigen::PlainObjectBase<DerivedF> & F,
+  const Eigen::MatrixBase<DerivedF> & F,
   Eigen::PlainObjectBase<DerivedC> & C)
 {
   Eigen::SparseMatrix<typename DerivedF::Scalar> A;

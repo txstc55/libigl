@@ -57,7 +57,7 @@ IGL_INLINE void igl::polygon_mesh_to_triangle_mesh(
 
 template <typename DerivedP, typename DerivedF>
 IGL_INLINE void igl::polygon_mesh_to_triangle_mesh(
-  const Eigen::PlainObjectBase<DerivedP>& P,
+  const Eigen::MatrixBase<DerivedP>& P,
   Eigen::PlainObjectBase<DerivedF>& F)
 {
   std::vector<std::vector<typename DerivedP::Scalar> > vP;

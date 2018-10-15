@@ -15,7 +15,7 @@
 
 template <typename DerivedA, typename DerivedC, typename DerivedIA, typename DerivedIC>
 IGL_INLINE void igl::unique_rows(
-  const Eigen::DenseBase<DerivedA>& A,
+  const Eigen::MatrixBase<DerivedA>& A,
   Eigen::PlainObjectBase<DerivedC>& C,
   Eigen::PlainObjectBase<DerivedIA>& IA,
   Eigen::PlainObjectBase<DerivedIC>& IC)

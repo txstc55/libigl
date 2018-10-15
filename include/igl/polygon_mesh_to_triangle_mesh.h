@@ -37,7 +37,7 @@ namespace igl
     Eigen::PlainObjectBase<DerivedF>& F);
   template <typename DerivedP, typename DerivedF>
   IGL_INLINE void polygon_mesh_to_triangle_mesh(
-    const Eigen::PlainObjectBase<DerivedP>& P,
+    const Eigen::MatrixBase<DerivedP>& P,
     Eigen::PlainObjectBase<DerivedF>& F);
 }
 

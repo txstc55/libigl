@@ -38,10 +38,10 @@ namespace igl
   //   U = A-Adiag;
   //
   // See also: edges, cotmatrix, diag
-  template <typename DerivedF, typename T>
+  template <typename DerivedF, typename OutScalar>
   IGL_INLINE void adjacency_matrix(
     const Eigen::MatrixBase<DerivedF> & F, 
-    Eigen::SparseMatrix<T>& A);
+    Eigen::SparseMatrix<OutScalar>& A);
 }
 
 #ifndef IGL_STATIC_LIBRARY

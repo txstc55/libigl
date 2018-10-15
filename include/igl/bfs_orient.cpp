@@ -12,7 +12,7 @@
 
 template <typename DerivedF, typename DerivedFF, typename DerivedC>
 IGL_INLINE void igl::bfs_orient(
-  const Eigen::PlainObjectBase<DerivedF> & F,
+  const Eigen::MatrixBase<DerivedF> & F,
   Eigen::PlainObjectBase<DerivedFF> & FF,
   Eigen::PlainObjectBase<DerivedC> & C)
 {
@@ -30,10 +30,12 @@ IGL_INLINE void igl::bfs_orient(
   // Edge sets
   const int ES[3][2] = {{1,2},{2,0},{0,1}};
 
-  if(&FF != &F)
-  {
+  // FIXME: In place optimization to avoid copy here doesn't work with PlainObjectBase/PlainObjectBase
+  //        so we always make a copy.
+  //  if(&FF != &F)
+  //  {
     FF = F;
-  }
+  //  }
   // loop over patches
 #pragma omp parallel for
   for(int c = 0;c<num_cc;c++)

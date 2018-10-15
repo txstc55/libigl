@@ -141,6 +141,14 @@ function(igl_download_googletest)
 	)
 endfunction()
 
+## Numpyeigen
+function(igl_download_numpyeigen)
+	igl_download_project(numpyeigen
+		GIT_REPOSITORY https://github.com/fwilliams/numpyeigen.git
+		GIT_TAG        c739621e2b8c5ed39d60f3ccb26fb6e131894500
+	)
+endfunction()
+
 ################################################################################
 
 ## Test data

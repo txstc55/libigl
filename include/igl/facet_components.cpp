@@ -11,7 +11,7 @@
 #include <queue>
 template <typename DerivedF, typename DerivedC>
 IGL_INLINE void igl::facet_components(
-  const Eigen::PlainObjectBase<DerivedF> & F,
+  const Eigen::MatrixBase<DerivedF> & F,
   Eigen::PlainObjectBase<DerivedC> & C)
 {
   using namespace std;

@@ -191,13 +191,18 @@ class TestBasic(unittest.TestCase):
         bc = igl.barycentric_coordinates_tet(d, a, b, c, d)
         self.assertEqual(bc.shape, (a.shape[0], 4))
 
-    def test_components(self):
+    def test_vertex_components(self):
         a = igl.adjacency_matrix(self.f1)
-        c, count = igl.vertex_components(a)
+        c, count = igl.vertex_components_from_adjacency_matrix(a)
         self.assertEqual(c.shape[0], self.v1.shape[0])
 
-        c = igl.vertex_components_from_faces(self.f1)
+        c = igl.vertex_components(self.f1)
         self.assertEqual(c.shape[0], self.f1.shape[0])
+
+    def test_face_components(self):
+        c = igl.face_components(self.f1)
+        self.assertEqual(c.shape, (self.f1.shape[0],))
+        self.assertTrue(np.array_equal(c, np.zeros_like(c)))
 
     def test_bfs(self):
         a = igl.adjacency_matrix(self.f1)

@@ -3,6 +3,40 @@
 #include <igl/vertex_components.h>
 
 const char* ds_vertex_components = R"igl_Qu8mg5v7(
+Compute connected components of the vertices of a mesh given the mesh' face indices.
+
+Parameters
+----------
+f : #f x dim array of face indices
+
+Returns
+-------
+An array of component ids (starting with 0)
+
+See also
+--------
+vertex_components_from_adjacency_matrix
+face_components_from_faces
+
+Notes
+-----
+
+Examples
+--------
+
+)igl_Qu8mg5v7";
+
+npe_function(vertex_components)
+npe_doc(ds_vertex_components)
+npe_arg(f, dense_i32, dense_i64)
+npe_begin_code()
+    npe_Matrix_f c;
+    igl::vertex_components(f, c);
+    return npe::move(c);
+npe_end_code()
+
+
+const char* ds_vertex_components_from_adjacency_matrix = R"igl_Qu8mg5v7(
 Compute connected components of a graph represented by a sparse adjacency
 matrix.
 
@@ -17,7 +51,7 @@ and counts is a #components array of counts for each component
 
 See also
 --------
-components_from_faces
+vertex_components
 face_components
 
 Notes
@@ -28,8 +62,8 @@ Examples
   
 )igl_Qu8mg5v7";
 
-npe_function(vertex_components)
-npe_doc(ds_vertex_components)
+npe_function(vertex_components_from_adjacency_matrix)
+npe_doc(ds_vertex_components_from_adjacency_matrix)
 npe_arg(a, sparse_i32, sparse_i64)
 npe_begin_code()
     EigenDense<npe_Scalar_a> c;
@@ -39,37 +73,4 @@ npe_begin_code()
 npe_end_code()
 
 
-
-const char* ds_vertex_components_from_faces = R"igl_Qu8mg5v7(
-Compute connected components of from the face indices of a mesh.
-
-Parameters
-----------
-f : #f x dim array of face indices
-
-Returns
--------
-An array of component ids (starting with 0)
-
-See also
---------
-vertex_components
-face_components_from_faces
-
-Notes
------
-
-Examples
---------
-
-)igl_Qu8mg5v7";
-
-npe_function(vertex_components_from_faces)
-npe_doc(ds_vertex_components_from_faces)
-npe_arg(f, dense_i32, dense_i64)
-npe_begin_code()
-    npe_Matrix_f c;
-    igl::vertex_components(f, c);
-    return npe::move(c);
-npe_end_code()
 

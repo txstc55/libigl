@@ -54,8 +54,8 @@ class TestBasic(unittest.TestCase):
         self.assertTrue(type(a) == csc.csc_matrix)
 
     def test_avg_edge_length(self):
-        l = igl.avg_edge_length(self.v, self.f)
-        self.assertTrue(np.isclose(l, 0.591942059553195))
+        l = igl.avg_edge_length(self.v1, self.f1)
+        self.assertTrue(np.isclose(l, 0.004661094877063719))
 
     def test_cotmatrix(self):
         l = igl.cotmatrix(self.v, self.f)
@@ -193,10 +193,10 @@ class TestBasic(unittest.TestCase):
 
     def test_components(self):
         a = igl.adjacency_matrix(self.f1)
-        c, count = igl.components(a)
+        c, count = igl.vertex_components(a)
         self.assertEqual(c.shape[0], self.v1.shape[0])
 
-        c = igl.components_from_faces(self.f1)
+        c = igl.vertex_components_from_faces(self.f1)
         self.assertEqual(c.shape[0], self.f1.shape[0])
 
     def test_bfs(self):

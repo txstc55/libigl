@@ -3,6 +3,11 @@ project(pyigl)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_BUILD_TYPE "Release")
 
+set(LIBIGL_EXTERNAL ${CMAKE_CURRENT_SOURCE_DIR}/../external)
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/../cmake)
+include(LibiglDownloadExternal)
+igl_download_numpyeigen()
+igl_download_tutorial_data()
 
 # NumpyEigen
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/../external/numpyeigen/cmake)

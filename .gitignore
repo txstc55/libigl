@@ -97,3 +97,9 @@ tutorial/cmake-build-debug
 tutorial/data
 tutorial/readme.html
 untitled
+
+# QT Creator Project files
+*.files
+*.creator
+*.includes
+*.config

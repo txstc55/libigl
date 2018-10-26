@@ -16,7 +16,7 @@ IGL_INLINE double igl::avg_edge_length(
   const Eigen::MatrixBase<DerivedF>& F)
 {
   typedef typename DerivedF::Scalar Index;
-  Eigen::Matrix<Index, Eigen::Dynamic, 2> E;
+  Eigen::Matrix<Index, Eigen::Dynamic, 2, Eigen::RowMajor> E; // We're doing a for loop over the rows, row major is faster
 
   igl::edges(F, E);
 

@@ -188,3 +188,10 @@ function(igl_download_tutorial_data)
 	)
 endfunction()
 
+## tbb
+function(igl_expansion_download_tbb)
+	igl_download_project(tbb
+        GIT_REPOSITORY https://github.com/wjakob/tbb.git
+        GIT_TAG        08b4341a1893a72656467e96137f1f99d0112547
+    )
+endfunction()

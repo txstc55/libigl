@@ -106,6 +106,74 @@ if(HUNTER_ENABLED)
   find_package(Eigen3 CONFIG REQUIRED)
 endif()
 
+## download tbb
+igl_expansion_download_tbb()
+set(TBB_BUILD_STATIC ON CACHE BOOL " " FORCE)
+set(TBB_BUILD_SHARED OFF CACHE BOOL " " FORCE)
+set(TBB_BUILD_TBBMALLOC OFF CACHE BOOL " " FORCE)
+set(TBB_BUILD_TBBMALLOC_PROXY OFF CACHE BOOL " " FORCE)
+set(TBB_BUILD_TESTS OFF CACHE BOOL " " FORCE)
+
+add_subdirectory(${LIBIGL_EXTERNAL}/tbb tbb)
+set_property(TARGET tbb_static tbb_def_files PROPERTY FOLDER "dependencies")
+
+target_compile_definitions(tbb_static PUBLIC -DUSE_TBB)
+target_include_directories(igl_common SYSTEM INTERFACE $<BUILD_INTERFACE:${LIBIGL_EXTERNAL}/tbb/include> $<INSTALL_INTERFACE:include>)
+target_link_libraries(igl_common INTERFACE tbb_static)
+
+
+
+### Find MKL
+if (DEFINED ENV{MKLROOT})
+	set(MKLROOT $ENV{MKLROOT})
+	message(STATUS "MKLROOT FOUND AT LOCATION: " ${MKLROOT})
+endif()
+
+if(NOT MKLROOT)
+	message(WARNING "Environment variable MKLROOT not defined, running without MKL")
+	SET(MKL_FOUND OFF)
+else()
+	SET(MKL_INCLUDE1 "${MKLROOT}/include/mkl.h")
+	SET(MKL_INCLUDE2 "${MKLROOT}/include/mkl_spblas.h")
+
+	if(EXISTS ${MKL_INCLUDE1} AND EXISTS ${MKL_INCLUDE2})
+		include(FindPackageHandleStandardArgs)
+
+		find_package_handle_standard_args(MKL DEFAULT_MSG MKLROOT)
+		mark_as_advanced(MKLROOT)
+	else()
+		message(WARNING "Environment variable MKLROOT pointing to the wrong path, files $MKLROOT/include/mkl.h and $MKLROOT/include/mkl_spblas.h do not exist, running without MKL")
+		SET(MKL_FOUND OFF)
+	endif()
+
+endif()
+
+### Link MKL library
+if (MKLROOT AND NOT ${CMAKE_HOST_SYSTEM_NAME} MATCHES "Windows")
+    include_directories(${MKLROOT}/include)
+    set(MKL_LIBRARY_PATH "${MKLROOT}/lib")
+    if (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Linux")
+        set(MKL_LIBRARY_PATH "${MKL_LIBRARY_PATH}/intel64")
+    endif()
+    set(MKL_LIBRARIES mkl_intel_lp64 mkl_tbb_thread mkl_core)
+    foreach(_lib ${MKL_LIBRARIES})
+        add_library(${_lib} STATIC IMPORTED)
+        set_property(TARGET ${_lib} PROPERTY IMPORTED_LOCATION ${MKL_LIBRARY_PATH}/lib${_lib}.a)        
+    endforeach()
+    if (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Linux")
+        target_link_libraries(igl_common INTERFACE -Wl,--start-group ${MKL_LIBRARIES} -Wl,--end-group -ltbb -lstdc++ -lpthread -lm -ldl)
+    else()
+        target_link_libraries(igl_common INTERFACE ${MKL_LIBRARIES} -lstdc++ -lpthread -lm -ldl)
+    endif()
+endif()
+
+
+
+
+
+
+
+
 # Eigen
 if(NOT TARGET Eigen3::Eigen)
   igl_download_eigen()
@@ -523,6 +591,7 @@ endif()
 install(
   TARGETS
     igl
+    tbb_static
     igl_common
     ${IGL_EIGEN}
   EXPORT igl-export

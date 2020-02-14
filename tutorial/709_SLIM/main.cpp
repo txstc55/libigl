@@ -140,7 +140,7 @@ void soft_const_demo_iter(igl::opengl::glfw::Viewer& viewer) {
     first_iter = false;
 
   } else {
-    slim_solve(sData,1); // 1 iter
+    slim_solve(sData,10); // 1 iter
     viewer.data().set_mesh(sData.V_o, F);
   }
 }

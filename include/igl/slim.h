@@ -12,6 +12,7 @@
 #include "MappingEnergyType.h"
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
+#include "mkl_symmetric_solver.h"
 
 // This option makes the iterations faster (all except the first) by caching the 
 // sparsity pattern of the matrix involved in the assembly. It should be on if you plan to do many iterations, off if you have to change the matrix structure at every iteration.
@@ -69,6 +70,9 @@ struct SLIMData
   Eigen::SparseMatrix<double> AtA;
   igl::AtA_cached_data AtA_data;
   #endif
+
+  MKLPardisoData pardiso_data;
+  bool first_called = true;
 };
 
 // Compute necessary information to start using SLIM

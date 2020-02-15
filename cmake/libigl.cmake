@@ -106,6 +106,12 @@ if(HUNTER_ENABLED)
   find_package(Eigen3 CONFIG REQUIRED)
 endif()
 
+
+
+################################################################################
+### inline-expansion purpose
+################################################################################
+
 ## download tbb
 igl_expansion_download_tbb()
 set(TBB_BUILD_STATIC ON CACHE BOOL " " FORCE)
@@ -120,7 +126,6 @@ set_property(TARGET tbb_static tbb_def_files PROPERTY FOLDER "dependencies")
 target_compile_definitions(tbb_static PUBLIC -DUSE_TBB)
 target_include_directories(igl_common SYSTEM INTERFACE $<BUILD_INTERFACE:${LIBIGL_EXTERNAL}/tbb/include> $<INSTALL_INTERFACE:include>)
 target_link_libraries(igl_common INTERFACE tbb_static)
-
 
 
 ### Find MKL
@@ -168,8 +173,23 @@ if (MKLROOT AND NOT ${CMAKE_HOST_SYSTEM_NAME} MATCHES "Windows")
 endif()
 
 
+### build inja
+igl_download_inja()
+
+set(INJA_INSTALL OFF CACHE BOOL " " FORCE)
+set(INJA_EXPORT OFF CACHE BOOL " " FORCE) # "Export the current build tree to the package registry"?
+set(BUILD_TESTING OFF CACHE BOOL " " FORCE)
+set(BUILD_BENCHMARK OFF CACHE BOOL " " FORCE)
+
+add_subdirectory(${LIBIGL_EXTERNAL}/inja)
+target_link_libraries(igl_common INTERFACE pantor::inja)
 
 
+target_compile_definitions(igl_common INTERFACE -DIE_CXX_COMPILER=\"${CMAKE_CXX_COMPILER}\" -DIE_TBB_DIR=\"${LIBIGL_EXTERNAL}/tbb\" -DIE_TBB_LIB=\"${PROJECT_BINARY_DIR}/tbb\" -DIE_BIN_DIR=\"${PROJECT_BINARY_DIR}\")
+
+################################################################################
+### inline-expansion purpose end
+################################################################################
 
 
 
@@ -275,6 +295,11 @@ if(LIBIGL_USE_STATIC_LIBRARY)
     "${LIBIGL_SOURCE_DIR}/igl/*.h*"
     "${LIBIGL_SOURCE_DIR}/igl/copyleft/*.cpp"
     "${LIBIGL_SOURCE_DIR}/igl/copyleft/*.h*"
+    "${LIBIGL_SOURCE_DIR}/igl/inline_expansion/*.cpp"
+    "${LIBIGL_SOURCE_DIR}/igl/inline_expansion/*.h*"
+    "${LIBIGL_SOURCE_DIR}/igl/inline_expansion/*/*.cpp"
+    "${LIBIGL_SOURCE_DIR}/igl/inline_expansion/*/*.h*"
+
   )
 endif()
 compile_igl_module("core" ${SOURCES_IGL})
@@ -592,6 +617,8 @@ install(
   TARGETS
     igl
     tbb_static
+    nlohmann_json
+    inja
     igl_common
     ${IGL_EIGEN}
   EXPORT igl-export

@@ -195,3 +195,10 @@ function(igl_expansion_download_tbb)
         GIT_TAG        08b4341a1893a72656467e96137f1f99d0112547
     )
 endfunction()
+
+## inja
+function(igl_download_inja)
+    igl_download_project(inja
+        GIT_REPOSITORY https://github.com/pantor/inja.git
+    )
+endfunction()

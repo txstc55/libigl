@@ -119,7 +119,7 @@ void TreeToFileVisitorGroupByFunction::visit(NumericVisitorTreeHashing& trees) {
 
     this->data["function_hash_name"] = this->file_name;
     Environment env;
-    Template function_template = env.parse_template("../src/GroupByFunction/GroupByFunctionTemplate.txt");
+    Template function_template = env.parse_template("../include/igl/inline_expansion/GroupByFunction/GroupByFunctionTemplate.txt");
     string result = env.render(function_template, this->data);
 
     this->file_name = "scramble_grouped_" + this->file_name;

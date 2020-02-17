@@ -23,6 +23,25 @@ NumericExecutor::NumericExecutor(Eigen::SparseMatrix<ie::NumericType, Eigen::Row
     this->tg.compile_file();
     this->tg.link_functions();
 }
+NumericExecutor::NumericExecutor(Eigen::SparseMatrix<ie::NumericType, Eigen::ColMajor>& R, size_t gap)
+{
+    this->gap = gap;
+    this->th = NumericVisitorTreeHashing(R.nonZeros());
+    tbb::parallel_for(size_t(0), size_t(R.nonZeros()), [&](size_t i) {
+        R.valuePtr()[i].accept(this->th, i);
+    });
+    this->choice = choice;
+    NumericType::clear_pool();
+
+    // for grouped function
+    cout << "Group by tree type method chosen\n";
+    this->tg = TreeToFileVisitorGroupByFunction(gap);
+    this->th.accept(this->tg);
+    this->tg.compile_file();
+    this->tg.link_functions();
+}
+
+
 
 void NumericExecutor::ExecuteSingle(const vector<vector<double>>& data, vector<double>& result)
 {

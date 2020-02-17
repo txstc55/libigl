@@ -18,6 +18,7 @@ private:
 public:
     NumericExecutor();
     NumericExecutor(Eigen::SparseMatrix<ie::NumericType, Eigen::RowMajor>& R, size_t gap);
+    NumericExecutor(Eigen::SparseMatrix<ie::NumericType, Eigen::ColMajor>& R, size_t gap);
     void ExecuteSingle(const std::vector<std::vector<double>>& data, std::vector<double>& result);
     void ExecuteMulti(const std::vector<std::vector<double>>& data, std::vector<double>& result);
 };

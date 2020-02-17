@@ -26,11 +26,12 @@ struct MKLPardisoData
     double *valuePtr;
 };
 
-IGL_INLINE void pardiso_init(MKLPardisoData &m);                                                         // init the paramaters for a general matrix
-IGL_INLINE void pardiso_support_matrix(MKLPardisoData &m, Eigen::SparseMatrix<double> &mat);             // support the matrix in eigen
-IGL_INLINE void pardiso_support_matrix(MKLPardisoData &m, int *outer, int *inner, double *value, int n); // support the matrix in csr format
-IGL_INLINE void pardiso_support_value(MKLPardisoData &m, double *value);                                 // keeping the structure but support another value array
-IGL_INLINE void pardiso_symbolic_factor(MKLPardisoData &m);                                              // symbolic facatorization
-IGL_INLINE void pardiso_numeric_factor(MKLPardisoData &m);                                               // numerical factorization
-IGL_INLINE void pardiso_solve(MKLPardisoData &m, double *x, double *b);                                  // compute the result into x, need the support for residuals
+IGL_INLINE void pardiso_init(MKLPardisoData &m);                                                              // init the paramaters for a general matrix
+IGL_INLINE void pardiso_support_matrix(MKLPardisoData &m, Eigen::SparseMatrix<double> &mat);                  // support the matrix in eigen
+IGL_INLINE void pardiso_support_matrix(MKLPardisoData &m, Eigen::SparseMatrix<double, Eigen::RowMajor> &mat); // support the matrix in eigen
+IGL_INLINE void pardiso_support_matrix(MKLPardisoData &m, int *outer, int *inner, double *value, int n);      // support the matrix in csr format
+IGL_INLINE void pardiso_support_value(MKLPardisoData &m, double *value);                                      // keeping the structure but support another value array
+IGL_INLINE void pardiso_symbolic_factor(MKLPardisoData &m);                                                   // symbolic facatorization
+IGL_INLINE void pardiso_numeric_factor(MKLPardisoData &m);                                                    // numerical factorization
+IGL_INLINE void pardiso_solve(MKLPardisoData &m, double *x, double *b);                                       // compute the result into x, need the support for residuals
 } // namespace igl

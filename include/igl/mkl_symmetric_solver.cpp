@@ -59,6 +59,11 @@ IGL_INLINE void pardiso_support_matrix(MKLPardisoData &m, Eigen::SparseMatrix<do
     pardiso_support_matrix(m, mat.outerIndexPtr(), mat.innerIndexPtr(), mat.valuePtr(), mat.rows());
 }
 
+IGL_INLINE void pardiso_support_matrix(MKLPardisoData &m, Eigen::SparseMatrix<double, Eigen::RowMajor> &mat)
+{
+    pardiso_support_matrix(m, mat.outerIndexPtr(), mat.innerIndexPtr(), mat.valuePtr(), mat.rows());
+}
+
 IGL_INLINE void pardiso_support_value(MKLPardisoData &m, double *value)
 {
     m.valuePtr = value;

@@ -86,6 +86,9 @@ struct SLIMData
   std::vector<int> L_outer;                                     // the outerindexptr
   std::vector<int> L_inner;                                     // the innerindexptr
   std::vector<int> A_triplet_order;                             // record how we insert the triplet's value, basically a map except the key is the position itself
+
+  std::vector<int> soft_constraint_index; // for seperating the adding soft constraints from the the entire process, we need to know the index of soft constraints
+  std::vector<int> all_diagonal_index;
 };
 
 // Compute necessary information to start using SLIM

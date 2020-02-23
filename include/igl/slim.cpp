@@ -46,7 +46,6 @@
 // #undef SLIM_CACHED
 
 #define USE_MKL_SOLVER
-#define USE_TRIPLETS
 
 #include "inline_expansion/utils.hpp"
 
@@ -128,18 +127,22 @@ IGL_INLINE void solve_weighted_arap(igl::SLIMData &s,
   igl::Timer t;
   Eigen::SparseMatrix<double> L;
   t.start();
-  build_linear_system_mkl(s, L);
+  build_linear_system_numeric_together(s, L);
   t.stop();
   std::cout << "Total time building linear system took " << t.getElapsedTimeInMicroSec() << " microseconds";
 
   //t.start();
   // solve
   Eigen::VectorXd Uc;
-#ifndef USE_TRIPLETS
-  std::vector<double> x(L.rows());
-#else
-  std::vector<double> x(s.n_rows);
-#endif
+  std::vector<double> x;
+  if (s.result_vector.size() == 0)
+  {
+    x.resize(L.rows());
+  }
+  else
+  {
+    x.resize(s.n_rows);
+  }
 #ifndef CHOLMOD
   if (s.dim == 2)
   {
@@ -156,11 +159,14 @@ IGL_INLINE void solve_weighted_arap(igl::SLIMData &s,
     {
       t.start();
       pardiso_init(s.pardiso_data);
-#ifndef USE_TRIPLETS
-      pardiso_support_matrix(s.pardiso_data, L);
-#else
-      pardiso_support_matrix(s.pardiso_data, s.L_outer.data(), s.L_inner.data(), s.result_vector.data(), s.n_rows);
-#endif
+      if (s.result_vector.size() == 0)
+      {
+        pardiso_support_matrix(s.pardiso_data, L);
+      }
+      else
+      {
+        pardiso_support_matrix(s.pardiso_data, s.L_outer.data(), s.L_inner.data(), s.result_vector.data(), s.n_rows);
+      }
       t.stop();
       std::cout << "\n"
                 << "Init everything for the mkl solver took " << t.getElapsedTimeInMicroSec() << " microseconds\n";
@@ -173,11 +179,14 @@ IGL_INLINE void solve_weighted_arap(igl::SLIMData &s,
     }
     else
     {
-#ifndef USE_TRIPLETS
-      pardiso_support_value(s.pardiso_data, L.valuePtr());
-#else
-      pardiso_support_value(s.pardiso_data, s.result_vector.data());
-#endif
+      if (s.result_vector.size() == 0)
+      {
+        pardiso_support_value(s.pardiso_data, L.valuePtr());
+      }
+      else
+      {
+        pardiso_support_value(s.pardiso_data, s.result_vector.data());
+      }
     }
     t.start();
     pardiso_numeric_factor(s.pardiso_data);
@@ -210,35 +219,46 @@ IGL_INLINE void solve_weighted_arap(igl::SLIMData &s,
     std::cout << "\n"
               << "Eigen ConjugateGradient solver took " << t.getElapsedTimeInMicroSec() << " microseconds\n";
 #else
-  if (s.first_called)
-  {
+    if (s.first_called)
+    {
+      t.start();
+      pardiso_init(s.pardiso_data);
+      if (s.result_vector.size() == 0)
+      {
+        pardiso_support_matrix(s.pardiso_data, L);
+      }
+      else
+      {
+        pardiso_support_matrix(s.pardiso_data, s.L_outer.data(), s.L_inner.data(), s.result_vector.data(), s.n_rows);
+      }
+      t.stop();
+      std::cout << "\nInit everything for the mkl solver took " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+      t.start();
+      pardiso_symbolic_factor(s.pardiso_data);
+      t.stop();
+      std::cout << "\nSymbolic factorization took " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+      s.first_called = false;
+    }
+    else
+    {
+      if (s.result_vector.size() == 0)
+      {
+        pardiso_support_value(s.pardiso_data, L.valuePtr());
+      }
+      else
+      {
+        pardiso_support_value(s.pardiso_data, s.result_vector.data());
+      }
+    }
     t.start();
-    pardiso_init(s.pardiso_data);
-    pardiso_support_matrix(s.pardiso_data, L);
+    pardiso_numeric_factor(s.pardiso_data);
     t.stop();
-    std::cout << "\n"
-              << "Init everything for the mkl solver took " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+    std::cout << "\nNumeric factorization took " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+    std::vector<double> b(s.rhs.data(), s.rhs.data() + s.rhs.rows() * s.rhs.cols());
     t.start();
-    pardiso_symbolic_factor(s.pardiso_data);
+    pardiso_solve(s.pardiso_data, x.data(), b.data());
     t.stop();
-    std::cout << "\n"
-              << "Symbolic factorization took " << t.getElapsedTimeInMicroSec() << " microseconds\n";
-    s.first_called = false;
-  }
-  else
-  {
-    pardiso_support_value(s.pardiso_data, L.valuePtr());
-  }
-  t.start();
-  pardiso_numeric_factor(s.pardiso_data);
-  t.stop();
-  std::cout << "\n"
-            << "Numeric factorization took " << t.getElapsedTimeInMicroSec() << " microseconds\n";
-  std::vector<double> b(s.rhs.data(), s.rhs.data() + s.rhs.rows() * s.rhs.cols());
-  t.start();
-  pardiso_solve(s.pardiso_data, x.data(), b.data());
-  t.stop();
-  std::cout << "MKL Pardiso solver took " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+    std::cout << "MKL Pardiso solver took " << t.getElapsedTimeInMicroSec() << " microseconds\n\n";
 #endif
   }
 #else
@@ -249,7 +269,7 @@ IGL_INLINE void solve_weighted_arap(igl::SLIMData &s,
 #ifndef USE_MKL_SOLVER
     uv.col(i) = Uc.block(i * s.v_n, 0, s.v_n, 1);
 #else
-  uv.col(i) = Eigen::Map<Eigen::VectorXd>(x.data() + i * s.v_n, s.v_n);
+    uv.col(i) = Eigen::Map<Eigen::VectorXd>(x.data() + i * s.v_n, s.v_n);
 #endif
 
   // t.stop();

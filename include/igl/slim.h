@@ -88,6 +88,10 @@ struct SLIMData
   std::vector<int> L_inner;                                     // the innerindexptr
   std::vector<int> A_triplet_order;                             // record how we insert the triplet's value, basically a map except the key is the position itself
 
+  // using inline-expansion, but seperate the steps
+  std::vector<int> soft_constraints_index; // record where at the result_vector we need to add the soft constraints
+  std::vector<int> diagonal_index;         // record where the diagonal entries are in the result_vector
+
   // using mkl
   sparse_matrix_t ata_mkl;
   sparse_matrix_t final_result;

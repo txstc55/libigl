@@ -60,6 +60,8 @@ IGL_INLINE void buildRhs(igl::SLIMData &s, const Eigen::SparseMatrix<double> &A)
 IGL_INLINE void add_soft_constraints(igl::SLIMData &s, Eigen::SparseMatrix<double> &L);
 IGL_INLINE void add_soft_constraints(igl::SLIMData &s, Eigen::SparseMatrix<double, Eigen::RowMajor> &L);
 IGL_INLINE void add_soft_constraints_numeric_together(igl::SLIMData &s);
+IGL_INLINE void add_soft_constraints_numeric_seperate_pre(igl::SLIMData &s, Eigen::SparseMatrix<ie::NumericType> &L);
+IGL_INLINE void add_soft_constraints_numeric_seperate_final(igl::SLIMData &s);
 IGL_INLINE double compute_energy(igl::SLIMData &s, Eigen::MatrixXd &V_new);
 IGL_INLINE double compute_soft_const_energy(igl::SLIMData &s,
                                             const Eigen::MatrixXd &V,
@@ -80,6 +82,7 @@ IGL_INLINE void build_linear_system_eigen(igl::SLIMData &s, Eigen::SparseMatrix<
 IGL_INLINE void build_linear_system_cached(igl::SLIMData &s, Eigen::SparseMatrix<double> &L);
 IGL_INLINE void build_linear_system_mkl(igl::SLIMData &s, Eigen::SparseMatrix<double> &L);
 IGL_INLINE void build_linear_system_numeric_together(igl::SLIMData &s, Eigen::SparseMatrix<double> &L);
+IGL_INLINE void build_linear_system_numeric_seperate(igl::SLIMData &s, Eigen::SparseMatrix<double> &L);
 IGL_INLINE void pre_calc(igl::SLIMData &s);
 
 // Implementation
@@ -127,7 +130,7 @@ IGL_INLINE void solve_weighted_arap(igl::SLIMData &s,
   igl::Timer t;
   Eigen::SparseMatrix<double> L;
   t.start();
-  build_linear_system_numeric_together(s, L);
+  build_linear_system_numeric_seperate(s, L);
   t.stop();
   std::cout << "Total time building linear system took " << t.getElapsedTimeInMicroSec() << " microseconds";
 
@@ -603,6 +606,96 @@ IGL_INLINE void build_linear_system_numeric_together(igl::SLIMData &s, Eigen::Sp
   std::cout << "NUMERIC COMPUTING EVERYTHING TOGETHER TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
 }
 
+IGL_INLINE void build_linear_system_numeric_seperate(igl::SLIMData &s, Eigen::SparseMatrix<double> &L)
+{
+  std::cout << "BUILDING LINEAR SYSTEM USING NUMERIC DOING ALL COMPUTATIONS SEPERATE\n";
+  std::vector<Eigen::Triplet<double>> IJV;
+  igl::Timer t;
+  t.start();
+  slim_buildA(s.Dx, s.Dy, s.Dz, s.W, IJV);
+  t.stop();
+  std::cout << "SLIM_BUILDA TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  t.start();
+  if (s.A.rows() == 0)
+  {
+    s.A = Eigen::SparseMatrix<double>(s.dim * s.dim * s.f_n, s.dim * s.v_n);
+    igl::sparse_cached_precompute(IJV, s.A_data, s.A);
+  }
+  else
+    igl::sparse_cached(IJV, s.A_data, s.A);
+  t.stop();
+  std::cout << "CONSTRUCTING MATRIX A TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  t.start();
+  buildRhs(s, s.A);
+  t.stop();
+  std::cout << "BUILDING RHS TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  if (s.first_called)
+  {
+    s.n_rows = s.A.cols();
+    s.datas.resize(2);
+    // build A in numeric type
+    Eigen::SparseMatrix<ie::NumericType, Eigen::ColMajor> A_numeric = ie::to_sparse_numeric<double, Eigen::ColMajor>(s.A, 0);
+    s.datas[0].resize(s.A.nonZeros());
+    s.datas[1].resize(s.WGL_M.rows() * s.WGL_M.cols());
+
+    // build wgl_m
+    Eigen::SparseMatrix<double, Eigen::ColMajor> wgl_m(s.A.rows(), s.A.rows());
+    std::vector<Eigen::Triplet<double>> wgl_m_trip;
+    wgl_m_trip.reserve(s.A.rows());
+    for (int i = 0; i < s.A.rows(); i++)
+    {
+      wgl_m_trip.push_back(Eigen::Triplet<double>(i, i, 2.0));
+    }
+    wgl_m.setFromTriplets(wgl_m_trip.begin(), wgl_m_trip.end());
+    Eigen::SparseMatrix<ie::NumericType, Eigen::ColMajor> wgl_m_numeric = ie::to_sparse_numeric<double, Eigen::ColMajor>(wgl_m, 1);
+
+    // the actual structure initialization
+    Eigen::SparseMatrix<ie::NumericType, Eigen::ColMajor> result_numeric = Eigen::SparseMatrix<ie::NumericType, Eigen::ColMajor>(A_numeric.transpose()) * wgl_m_numeric * A_numeric;
+    result_numeric = result_numeric.triangularView<Eigen::Lower>();
+    std::vector<int> zero_diagonal_row;
+    // get the 0 diagonals
+    for (int i = 0; i < s.A.cols(); i++)
+    {
+      if (s.A.outerIndexPtr()[i + 1] - s.A.outerIndexPtr()[i] == 0)
+      {
+        zero_diagonal_row.push_back(i);
+      }
+    }
+    // adding proximal terms to the diagonals
+    for (int i = 0; i < zero_diagonal_row.size(); i++)
+    {
+      std::cout << "Row " << zero_diagonal_row[i] << " adding proximal term\n";
+      result_numeric.insert(zero_diagonal_row[i], zero_diagonal_row[i]) = ie::NumericType(s.proximal_p);
+    }
+
+    std::cout << "Proximal initialize finished\n";
+    result_numeric.makeCompressed();
+    add_soft_constraints_numeric_seperate_pre(s, result_numeric);
+    s.ex = ie::NumericExecutor(result_numeric, 0);
+    s.result_vector.resize(result_numeric.nonZeros(), 0);
+
+    // copy the outer index pointer and inner index pointer to s
+    s.L_outer.resize(result_numeric.rows() + 1);
+    s.L_inner.resize(result_numeric.nonZeros());
+    s.L_outer.assign(result_numeric.outerIndexPtr(), result_numeric.outerIndexPtr() + result_numeric.rows() + 1);
+    s.L_inner.assign(result_numeric.innerIndexPtr(), result_numeric.innerIndexPtr() + result_numeric.nonZeros());
+    result_numeric.resize(0, 0);
+  }
+  t.start();
+  s.datas[0].assign(s.A.valuePtr(), s.A.valuePtr() + s.A.nonZeros());
+  s.datas[1].assign(s.WGL_M.data(), s.WGL_M.data() + s.WGL_M.rows() * s.WGL_M.cols());
+  t.stop();
+  std::cout << "ASSIGNING DATAS TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  t.start();
+  s.ex.ExecuteMulti(s.datas, s.result_vector);
+  t.stop();
+  std::cout << "NUMERIC COMPUTING ATBA TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  t.start();
+  add_soft_constraints_numeric_seperate_final(s);
+  t.stop();
+  std::cout << "NUMERIC ADDING SOFT CONSTRAINTS AND PROXIMAL TERMS TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+}
+
 IGL_INLINE void add_soft_constraints(igl::SLIMData &s, Eigen::SparseMatrix<double> &L)
 {
   int v_n = s.v_num;
@@ -672,6 +765,63 @@ IGL_INLINE void add_soft_constraints_numeric_together(igl::SLIMData &s)
       pos++;
     }
   }
+}
+
+IGL_INLINE void add_soft_constraints_numeric_seperate_pre(igl::SLIMData &s, Eigen::SparseMatrix<ie::NumericType> &L)
+{
+  int v_n = s.v_num;
+  std::vector<int> rows;
+  for (int d = 0; d < s.dim; d++)
+  {
+    for (int i = 0; i < s.b.rows(); i++)
+    {
+      int v_idx = s.b(i);
+      rows.push_back(d * v_n + v_idx);
+    }
+  }
+  s.soft_constraints_index.resize(rows.size());
+  int index = 0;
+  for (int i = 0; i < L.outerSize(); ++i)
+  {
+    for (Eigen::SparseMatrix<ie::NumericType>::InnerIterator it(L, i); it; ++it)
+    {
+      if (it.row() == it.col())
+      {
+        if (it.value().operation != 1)
+        {
+          s.diagonal_index.push_back(index);
+        }
+        for (int j = 0; j < rows.size(); j++)
+        {
+          if (rows[j] == it.row())
+          {
+            s.soft_constraints_index[j] = index;
+          }
+        }
+      }
+      index++;
+    }
+  }
+}
+
+IGL_INLINE void add_soft_constraints_numeric_seperate_final(igl::SLIMData &s)
+{
+  int v_n = s.v_num;
+  int index = 0;
+  for (int d = 0; d < s.dim; d++)
+  {
+    for (int i = 0; i < s.b.rows(); i++)
+    {
+      int v_idx = s.b(i);
+      s.rhs(d * v_n + v_idx) += s.soft_const_p * s.bc(i, d);              // rhs
+      s.result_vector[s.soft_constraints_index[index]] += s.soft_const_p; // diagonal of matrix
+      // std::cout << s.soft_constraints_index[index] << " added soft const\n";
+      index++;
+    }
+  }
+  tbb::parallel_for(size_t(0), size_t(s.diagonal_index.size()), [&](size_t i) {
+    s.result_vector[s.diagonal_index[i]] += s.proximal_p;
+  });
 }
 
 IGL_INLINE double compute_energy(igl::SLIMData &s, Eigen::MatrixXd &V_new)

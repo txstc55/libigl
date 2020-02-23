@@ -13,6 +13,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include "mkl_symmetric_solver.h"
+#include "mkl_routines.hpp"
 #include "inline_expansion/NumericExecutor.hpp"
 
 // This option makes the iterations faster (all except the first) by caching the
@@ -87,8 +88,10 @@ struct SLIMData
   std::vector<int> L_inner;                                     // the innerindexptr
   std::vector<int> A_triplet_order;                             // record how we insert the triplet's value, basically a map except the key is the position itself
 
-  std::vector<int> soft_constraint_index; // for seperating the adding soft constraints from the the entire process, we need to know the index of soft constraints
-  std::vector<int> all_diagonal_index;
+  // using mkl
+  sparse_matrix_t ata_mkl;
+  sparse_matrix_t final_result;
+  struct matrix_descr symmetric_type;
 };
 
 // Compute necessary information to start using SLIM

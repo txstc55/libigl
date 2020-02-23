@@ -48,10 +48,6 @@
 #define USE_MKL_SOLVER
 #define USE_NUMERIC
 
-// #ifdef SLIM_CACHED
-// #undef USE_NUMERIC
-// #endif
-
 #include "inline_expansion/utils.hpp"
 
 #include "ie_helper.hpp"
@@ -63,6 +59,7 @@ namespace slim
 // Definitions of internal functions
 IGL_INLINE void buildRhs(igl::SLIMData &s, const Eigen::SparseMatrix<double> &A);
 IGL_INLINE void add_soft_constraints(igl::SLIMData &s, Eigen::SparseMatrix<double> &L);
+IGL_INLINE void add_soft_constraints(igl::SLIMData &s, Eigen::SparseMatrix<double, Eigen::RowMajor> &L);
 IGL_INLINE void add_soft_constraints_numeric_together(igl::SLIMData &s);
 IGL_INLINE double compute_energy(igl::SLIMData &s, Eigen::MatrixXd &V_new);
 IGL_INLINE double compute_soft_const_energy(igl::SLIMData &s,
@@ -82,6 +79,7 @@ IGL_INLINE void compute_jacobians(igl::SLIMData &s, const Eigen::MatrixXd &uv);
 IGL_INLINE void build_linear_system(igl::SLIMData &s, Eigen::SparseMatrix<double> &L);
 IGL_INLINE void build_linear_system_eigen(igl::SLIMData &s, Eigen::SparseMatrix<double> &L);
 IGL_INLINE void build_linear_system_cached(igl::SLIMData &s, Eigen::SparseMatrix<double> &L);
+IGL_INLINE void build_linear_system_mkl(igl::SLIMData &s, Eigen::SparseMatrix<double> &L);
 IGL_INLINE void build_linear_system_numeric_together(igl::SLIMData &s, Eigen::SparseMatrix<double> &L);
 IGL_INLINE void pre_calc(igl::SLIMData &s);
 
@@ -131,11 +129,6 @@ IGL_INLINE void solve_weighted_arap(igl::SLIMData &s,
   Eigen::SparseMatrix<double> L;
   t.start();
   build_linear_system_numeric_together(s, L);
-  std::vector<double> tmp = s.result_vector;
-  // build_linear_system_numeric_together(s, L);
-  // for (int i=0; i<tmp.size(); i++){
-  //   std::cout<<tmp[i]-s.result_vector[i]<<"\n";
-  // }
   t.stop();
   std::cout << "Total time building linear system took " << t.getElapsedTimeInMicroSec() << " microseconds";
 
@@ -389,7 +382,7 @@ IGL_INLINE void build_linear_system_cached(igl::SLIMData &s, Eigen::SparseMatrix
   {
     s.A = Eigen::SparseMatrix<double>(s.dim * s.dim * s.f_n, s.dim * s.v_n);
     igl::sparse_cached_precompute(IJV, s.A_data, s.A);
-    export_mtx(s.A, "small_face.mtx");
+    // export_mtx(s.A, "small_face.mtx");
   }
   else
     igl::sparse_cached(IJV, s.A_data, s.A);
@@ -424,6 +417,84 @@ IGL_INLINE void build_linear_system_cached(igl::SLIMData &s, Eigen::SparseMatrix
   add_soft_constraints(s, L);
   t.stop();
   std::cout << "ADDING SOFT CONSTRAINTS TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+}
+
+IGL_INLINE void build_linear_system_mkl(igl::SLIMData &s, Eigen::SparseMatrix<double> &L)
+{
+  std::cout << "BUILDING LINEAR SYSTEM USING MKL\n";
+  std::vector<Eigen::Triplet<double>> IJV;
+  igl::Timer t;
+  t.start();
+  slim_buildA(s.Dx, s.Dy, s.Dz, s.W, IJV);
+  t.stop();
+  std::cout << "SLIM_BUILDA TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  t.start();
+  if (s.A.rows() == 0)
+  {
+    s.A = Eigen::SparseMatrix<double>(s.dim * s.dim * s.f_n, s.dim * s.v_n);
+    igl::sparse_cached_precompute(IJV, s.A_data, s.A);
+    // export_mtx(s.A, "small_face.mtx");
+  }
+  else
+    igl::sparse_cached(IJV, s.A_data, s.A);
+  t.stop();
+  std::cout << "CONSTRUCTING MATRIX A TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  t.start();
+  buildRhs(s, s.A);
+  t.stop();
+  std::cout << "BUILDING RHS TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  t.start();
+  sparse_matrix_t A_mkl;
+  create_mkl_csr_matrix(s.A, &A_mkl);
+  t.stop();
+  std::cout << "CONVERTING A TO MKL FORMAT TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  t.start();
+  Eigen::SparseMatrix<double> wgl_m(s.A.rows(), s.A.rows());
+  std::vector<Eigen::Triplet<double>> wgl_m_trip(s.A.rows());
+  for (int i = 0; i < s.A.rows(); i++)
+  {
+    wgl_m_trip[i] = Eigen::Triplet<double>(i, i, s.WGL_M(i));
+  }
+  wgl_m.setFromTriplets(wgl_m_trip.begin(), wgl_m_trip.end());
+  wgl_m.makeCompressed();
+  sparse_matrix_t wgl_m_mkl;
+  create_mkl_csr_matrix(wgl_m, &wgl_m_mkl);
+  t.stop();
+  std::cout << "CREATING WGL_M_MKL TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  t.start();
+  Eigen::SparseMatrix<double> id_m(s.A.cols(), s.A.cols());
+  id_m.setIdentity();
+  id_m *= s.proximal_p;
+  add_soft_constraints(s, id_m);
+  id_m.makeCompressed();
+  sparse_matrix_t id_m_mkl;
+  create_mkl_csr_matrix(id_m, &id_m_mkl);
+  t.stop();
+  std::cout << "CREATING ID_M_MKL TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  t.start();
+  if (s.first_called)
+  {
+    mkl_sypr_pre(A_mkl, wgl_m_mkl, s.symmetric_type, &s.ata_mkl);
+  }
+  mkl_sypr_final(A_mkl, wgl_m_mkl, s.symmetric_type, &s.ata_mkl);
+  t.stop();
+  std::cout << "MKL COMPUTING ATDA TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  t.start();
+  mkl_sparse_add(s.ata_mkl, id_m_mkl, 1, &s.final_result);
+  t.stop();
+  std::cout << "MKL ADDING PROXIMAL TERMS AND SOFT CONSTRAINTS TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  t.start();
+  if (s.first_called)
+  {
+    s.n_rows = s.A.cols();
+    export_csr_from_mkl(s.final_result, s.L_outer, s.L_inner, s.result_vector);
+  }
+  else
+  {
+    export_val_from_mkl(s.final_result, s.result_vector);
+  }
+  t.stop();
+  std::cout << "EXPORTING VALUES TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
 }
 
 IGL_INLINE void build_linear_system_numeric_together(igl::SLIMData &s, Eigen::SparseMatrix<double> &L)
@@ -514,6 +585,20 @@ IGL_INLINE void build_linear_system_numeric_together(igl::SLIMData &s, Eigen::Sp
 }
 
 IGL_INLINE void add_soft_constraints(igl::SLIMData &s, Eigen::SparseMatrix<double> &L)
+{
+  int v_n = s.v_num;
+  for (int d = 0; d < s.dim; d++)
+  {
+    for (int i = 0; i < s.b.rows(); i++)
+    {
+      int v_idx = s.b(i);
+      s.rhs(d * v_n + v_idx) += s.soft_const_p * s.bc(i, d);          // rhs
+      L.coeffRef(d * v_n + v_idx, d * v_n + v_idx) += s.soft_const_p; // diagonal of matrix
+    }
+  }
+}
+
+IGL_INLINE void add_soft_constraints(igl::SLIMData &s, Eigen::SparseMatrix<double, Eigen::RowMajor> &L)
 {
   int v_n = s.v_num;
   for (int d = 0; d < s.dim; d++)

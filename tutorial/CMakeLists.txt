@@ -45,6 +45,9 @@ if(TUTORIALS_CHAPTER1)
   add_subdirectory("101_FileIO")
 endif()
 
+## slim for our purpose does not need opengl
+add_subdirectory("709_SLIM")
+
 #######################
 if(NOT (LIBIGL_WITH_OPENGL AND LIBIGL_WITH_OPENGL_GLFW) )
   message(WARNING "Most tutorial executables depend on OpenGL and glfw. Use `cmake ../ -DLIBIGL_WITH_OPENGL=ON -DLIBIGL_WITH_OPENGL_GLFW=ON`")

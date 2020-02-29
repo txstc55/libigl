@@ -136,7 +136,6 @@ bool key_down(unsigned char key, int modifier)
 
 void param_2d_demo_iter()
 {
-  std::cout << "Param_2d\n";
   if (first_iter)
   {
     timer.start();
@@ -185,7 +184,6 @@ void param_2d_demo_iter()
 
 void soft_const_demo_iter()
 {
-  std::cout << "Param_2321321321d\n";
   if (first_iter)
   {
     if (mesh_name == "")
@@ -217,7 +215,6 @@ void soft_const_demo_iter()
 
 void deform_3d_demo_iter()
 {
-  std::cout << "Pfdsafdsafdsaaram_2d\n";
   if (first_iter)
   {
     timer.start();

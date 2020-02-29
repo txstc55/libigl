@@ -130,7 +130,27 @@ IGL_INLINE void solve_weighted_arap(igl::SLIMData &s,
   igl::Timer t;
   Eigen::SparseMatrix<double> L;
   t.start();
-  build_linear_system_numeric_seperate(s, L);
+  switch (s.method_type)
+  {
+  case 0:
+    build_linear_system_eigen(s, L);
+    break;
+  case 1:
+    build_linear_system_cached(s, L);
+    break;
+  case 2:
+    build_linear_system_mkl(s, L);
+    break;
+  case 3:
+    build_linear_system_numeric_together(s, L);
+    break;
+  case 4:
+    build_linear_system_numeric_seperate(s, L);
+    break;
+  default:
+    build_linear_system_eigen(s, L);
+    break;
+  }
   t.stop();
   std::cout << "Total time building linear system took " << t.getElapsedTimeInMicroSec() << " microseconds";
 
@@ -178,7 +198,6 @@ IGL_INLINE void solve_weighted_arap(igl::SLIMData &s,
       t.stop();
       std::cout << "\n"
                 << "Symbolic factorization took " << t.getElapsedTimeInMicroSec() << " microseconds\n";
-      s.first_called = false;
     }
     else
     {
@@ -201,6 +220,7 @@ IGL_INLINE void solve_weighted_arap(igl::SLIMData &s,
     pardiso_solve(s.pardiso_data, x.data(), b.data());
     t.stop();
     std::cout << "MKL Pardiso solver took " << t.getElapsedTimeInMicroSec() << " microseconds\n\n";
+    s.first_called = false;
 #endif
   }
   else
@@ -240,7 +260,6 @@ IGL_INLINE void solve_weighted_arap(igl::SLIMData &s,
       pardiso_symbolic_factor(s.pardiso_data);
       t.stop();
       std::cout << "\nSymbolic factorization took " << t.getElapsedTimeInMicroSec() << " microseconds\n";
-      s.first_called = false;
     }
     else
     {
@@ -262,6 +281,7 @@ IGL_INLINE void solve_weighted_arap(igl::SLIMData &s,
     pardiso_solve(s.pardiso_data, x.data(), b.data());
     t.stop();
     std::cout << "MKL Pardiso solver took " << t.getElapsedTimeInMicroSec() << " microseconds\n\n";
+    s.first_called = false;
 #endif
   }
 #else

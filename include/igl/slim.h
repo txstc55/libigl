@@ -96,12 +96,17 @@ struct SLIMData
   sparse_matrix_t ata_mkl;
   sparse_matrix_t final_result;
   struct matrix_descr symmetric_type;
+
+
+
+  // specify the method type
+  int method_type;
 };
 
 // Compute necessary information to start using SLIM
 // Inputs:
-//		V           #V by 3 list of mesh vertex positions
-//		F           #F by 3/3 list of mesh faces (triangles/tets)
+//      V           #V by 3 list of mesh vertex positions
+//      F           #F by 3/3 list of mesh faces (triangles/tets)
 //    b           list of boundary indices into V
 //    bc          #b by dim list of boundary conditions
 //    soft_p      Soft penalty factor (can be zero)

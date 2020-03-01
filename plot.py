@@ -3,12 +3,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 results = []
-with open('result_datas/all_result.json', 'r') as j:
+with open('result_datas/all_result_demo1.json', 'r') as j:
     results = json.load(j)
 
 assemble = [float(x["ASSEMBLE"])/100 for x in results]
 compute = [float(x["COMPUTE"])/100 for x in results]
 solve = [float(x["SOLVE"])/100 for x in results]
+
+total_time =[assemble[i]+compute[i]+solve[i] for i in range(5)]
 
 bars = np.add(assemble, compute).tolist()
 
@@ -26,6 +28,15 @@ plt.title('Method')
 plt.xticks(ind, [x["name"] for x in results])
 plt.yticks(np.arange(0, 81, 10))
 plt.legend((p1[0], p2[0], p3[0]), ('Assemble', 'Compute', 'Solve'))
+
+
+for r1, r2, r3 in zip(p1, p2, p3):
+    h1 = r1.get_height()
+    h2 = r2.get_height()
+    h3 = r3.get_height()
+    plt.text(r1.get_x() + r1.get_width() / 2., h1 / 2., "%d" % h1, ha="center", va="center", color="white", fontsize=5, fontweight="bold")
+    plt.text(r2.get_x() + r2.get_width() / 2., h1 + h2 / 2., "%d" % h2, ha="center", va="center", color="white", fontsize=5, fontweight="bold")
+    plt.text(r3.get_x() + r3.get_width() / 2., h1 + h2 + h3 / 2., "%d" % h3, ha="center", va="center", color="white", fontsize=5, fontweight="bold")
 
 plt.show()
 

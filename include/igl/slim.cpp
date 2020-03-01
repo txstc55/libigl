@@ -517,11 +517,11 @@ IGL_INLINE void build_linear_system_mkl(igl::SLIMData &s, Eigen::SparseMatrix<do
   create_mkl_csr_matrix(id_m, &id_m_mkl);
   write_to_file(result_file, "CREATING PROXIMAL+SOFT_CONSTRAINTS MKL", t.getElapsedTimeInMicroSec(), s.first_called);
   t.stop();
-  t.start();
   if (s.first_called)
   {
     mkl_sypr_pre(A_mkl, wgl_m_mkl, s.symmetric_type, &s.ata_mkl);
   }
+  t.start();
   mkl_sypr_final(A_mkl, wgl_m_mkl, s.symmetric_type, &s.ata_mkl);
   t.stop();
   write_to_file(result_file, "COMPUTE ATDA", t.getElapsedTimeInMicroSec(), s.first_called);

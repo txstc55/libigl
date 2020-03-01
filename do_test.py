@@ -16,6 +16,7 @@ demo_type = " -d "+ str(demo_type)
 if not os.path.isdir("build"):
     print("Creating build folder now")
     os.system("mkdir build")
+    os.system("cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && make -j && cd ..")
 else:
     print("Build exists, rebuilding")
     os.system("cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && make -j && cd ..")

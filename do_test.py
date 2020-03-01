@@ -160,8 +160,4 @@ for line in f:
 
 import json
 with open('result_datas/all_result.json', 'w') as j:
-    json.dump(eigen_data, j)
-    json.dump(cached_data, j)
-    json.dump(mkl_data, j)
-    json.dump(numeric1_data, j)
-    json.dump(numeric2_data, j)
+    json.dump([eigen_data,cached_data,mkl_data,numeric1_data,numeric2_data],j)

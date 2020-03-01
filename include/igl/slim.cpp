@@ -51,6 +51,7 @@
 
 #include "ie_helper.hpp"
 
+#include "test_record_util.h"
 namespace igl
 {
 namespace slim
@@ -84,6 +85,8 @@ IGL_INLINE void build_linear_system_mkl(igl::SLIMData &s, Eigen::SparseMatrix<do
 IGL_INLINE void build_linear_system_numeric_together(igl::SLIMData &s, Eigen::SparseMatrix<double> &L);
 IGL_INLINE void build_linear_system_numeric_seperate(igl::SLIMData &s, Eigen::SparseMatrix<double> &L);
 IGL_INLINE void pre_calc(igl::SLIMData &s);
+
+std::ofstream result_file;
 
 // Implementation
 
@@ -125,11 +128,13 @@ IGL_INLINE void solve_weighted_arap(igl::SLIMData &s,
                                     Eigen::VectorXi &soft_b_p,
                                     Eigen::MatrixXd &soft_bc_p)
 {
+  if (s.first_called)
+  {
+    result_file.open("result.txt");
+  }
   using namespace Eigen;
 
-  igl::Timer t;
   Eigen::SparseMatrix<double> L;
-  t.start();
   switch (s.method_type)
   {
   case 0:
@@ -151,8 +156,6 @@ IGL_INLINE void solve_weighted_arap(igl::SLIMData &s,
     build_linear_system_eigen(s, L);
     break;
   }
-  t.stop();
-  std::cout << "Total time building linear system took " << t.getElapsedTimeInMicroSec() << " microseconds";
 
   //t.start();
   // solve
@@ -176,7 +179,7 @@ IGL_INLINE void solve_weighted_arap(igl::SLIMData &s,
     Uc = solver.compute(L).solve(s.rhs);
     t.stop();
     std::cout << "\n"
-              << "Eigen solver took " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+              << "Eigen solver took " << t.getElapsedTimeInMicroSec();
 #else
     if (s.first_called)
     {
@@ -192,12 +195,12 @@ IGL_INLINE void solve_weighted_arap(igl::SLIMData &s,
       }
       t.stop();
       std::cout << "\n"
-                << "Init everything for the mkl solver took " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+                << "Init everything for the mkl solver took " << t.getElapsedTimeInMicroSec();
       t.start();
       pardiso_symbolic_factor(s.pardiso_data);
       t.stop();
       std::cout << "\n"
-                << "Symbolic factorization took " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+                << "Symbolic factorization took " << t.getElapsedTimeInMicroSec();
     }
     else
     {
@@ -213,13 +216,12 @@ IGL_INLINE void solve_weighted_arap(igl::SLIMData &s,
     t.start();
     pardiso_numeric_factor(s.pardiso_data);
     t.stop();
-    std::cout << "\n"
-              << "Numeric factorization took " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+    write_to_file(result_file, "Numeric factorization", t.getElapsedTimeInMicroSec(), s.first_called);
     std::vector<double> b(s.rhs.data(), s.rhs.data() + s.rhs.rows() * s.rhs.cols());
     t.start();
     pardiso_solve(s.pardiso_data, x.data(), b.data());
     t.stop();
-    std::cout << "MKL Pardiso solver took " << t.getElapsedTimeInMicroSec() << " microseconds\n\n";
+    write_to_file(result_file, "MKL Pardiso solver", t.getElapsedTimeInMicroSec(), s.first_called);
     s.first_called = false;
 #endif
   }
@@ -240,7 +242,7 @@ IGL_INLINE void solve_weighted_arap(igl::SLIMData &s,
     Uc = cg.solveWithGuess(s.rhs, guess);
     t.stop();
     std::cout << "\n"
-              << "Eigen ConjugateGradient solver took " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+              << "Eigen ConjugateGradient solver took " << t.getElapsedTimeInMicroSec();
 #else
     if (s.first_called)
     {
@@ -255,11 +257,11 @@ IGL_INLINE void solve_weighted_arap(igl::SLIMData &s,
         pardiso_support_matrix(s.pardiso_data, s.L_outer.data(), s.L_inner.data(), s.result_vector.data(), s.n_rows);
       }
       t.stop();
-      std::cout << "\nInit everything for the mkl solver took " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+      std::cout << "\nInit everything for the mkl solver took " << t.getElapsedTimeInMicroSec();
       t.start();
       pardiso_symbolic_factor(s.pardiso_data);
       t.stop();
-      std::cout << "\nSymbolic factorization took " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+      std::cout << "\nSymbolic factorization took " << t.getElapsedTimeInMicroSec();
     }
     else
     {
@@ -275,12 +277,12 @@ IGL_INLINE void solve_weighted_arap(igl::SLIMData &s,
     t.start();
     pardiso_numeric_factor(s.pardiso_data);
     t.stop();
-    std::cout << "\nNumeric factorization took " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+    write_to_file(result_file, "Numeric factorization", t.getElapsedTimeInMicroSec(), s.first_called);
     std::vector<double> b(s.rhs.data(), s.rhs.data() + s.rhs.rows() * s.rhs.cols());
     t.start();
     pardiso_solve(s.pardiso_data, x.data(), b.data());
     t.stop();
-    std::cout << "MKL Pardiso solver took " << t.getElapsedTimeInMicroSec() << " microseconds\n\n";
+    write_to_file(result_file, "MKL Pardiso solver", t.getElapsedTimeInMicroSec(), s.first_called);
     s.first_called = false;
 #endif
   }
@@ -364,57 +366,56 @@ IGL_INLINE void pre_calc(igl::SLIMData &s)
 
 IGL_INLINE void build_linear_system_eigen(igl::SLIMData &s, Eigen::SparseMatrix<double> &L)
 {
-  std::cout << "BUILDING LINEAR SYSTEM USING EIGEN\n";
+  result_file << "START BUILDING LINEAR SYSTEM USING EIGEN\n";
   std::vector<Eigen::Triplet<double>> IJV;
   igl::Timer t;
   t.start();
   slim_buildA(s.Dx, s.Dy, s.Dz, s.W, IJV);
   t.stop();
-  std::cout << "SLIM_BUILDA TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "SLIM_BUILDA", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   Eigen::SparseMatrix<double> A(s.dim * s.dim * s.f_n, s.dim * s.v_n);
   A.setFromTriplets(IJV.begin(), IJV.end());
   A.makeCompressed();
   t.stop();
-  std::cout << "CONSTRUCTING MATRIX A TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "CONSTRUCTING MATRIX A", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   Eigen::SparseMatrix<double> At = A.transpose();
   At.makeCompressed();
   t.stop();
-  std::cout << "TAKING A TRANSPOSE TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "TAKING A TRANSPOSE", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   Eigen::SparseMatrix<double> id_m(A.cols(), A.cols());
   id_m.setIdentity();
   t.stop();
-  std::cout << "SETTING AN IDENTITY MATRIX TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "SETTING ID_M", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   L = At * s.WGL_M.asDiagonal() * A + s.proximal_p * id_m; //add also a proximal term
   L.makeCompressed();
   t.stop();
-  std::cout << "EIGEN COMPUTING L WITHOUT SOFT CONSTRAINTS " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "COMPUTE L WITHOUT SOFT CONSTRAINTS", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   buildRhs(s, A);
   t.stop();
-  std::cout << "BUILDING RHS TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "BUILDING RHS", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   add_soft_constraints(s, L);
   t.stop();
-  std::cout << "ADDING SOFT CONSTRAINTS TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
   t.start();
   L = L.triangularView<Eigen::Lower>();
   t.stop();
-  std::cout << "GETTING TRIANGULAR VIEW TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "GETTING TRIANGULAR VIEW TOOK ", t.getElapsedTimeInMicroSec(), s.first_called);
 }
 
 IGL_INLINE void build_linear_system_cached(igl::SLIMData &s, Eigen::SparseMatrix<double> &L)
 {
-  std::cout << "BUILDING LINEAR SYSTEM USING DANIELE'S METHOD\n";
+  result_file << "START BUILDING LINEAR SYSTEM USING DANIELE'S METHOD\n";
   std::vector<Eigen::Triplet<double>> IJV;
   igl::Timer t;
   t.start();
   slim_buildA(s.Dx, s.Dy, s.Dz, s.W, IJV);
   t.stop();
-  std::cout << "SLIM_BUILDA TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "SLIM_BUILDA", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   if (s.A.rows() == 0)
   {
@@ -425,12 +426,12 @@ IGL_INLINE void build_linear_system_cached(igl::SLIMData &s, Eigen::SparseMatrix
   else
     igl::sparse_cached(IJV, s.A_data, s.A);
   t.stop();
-  std::cout << "CONSTRUCTING MATRIX A TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "CONSTRUCTING MATRIX A", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   Eigen::SparseMatrix<double> id_m(s.A.cols(), s.A.cols());
   id_m.setIdentity();
   t.stop();
-  std::cout << "SETTING AN IDENTITY MATRIX TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "SETTING ID_M", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   s.AtA_data.W = s.WGL_M;
   if (s.AtA.rows() == 0)
@@ -442,34 +443,34 @@ IGL_INLINE void build_linear_system_cached(igl::SLIMData &s, Eigen::SparseMatrix
     igl::AtA_cached(s.A, s.AtA_data, s.AtA);
   }
   t.stop();
-  std::cout << "COMPUTING ATDA TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "COMPUTE ATDA", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   L = s.AtA + s.proximal_p * id_m; //add also a proximal
   L.makeCompressed();
   t.stop();
-  std::cout << "ADDING PROXIMAL TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "ADDING PROXIMAL TOOK ", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   buildRhs(s, s.A);
   t.stop();
-  std::cout << "BUILDING RHS TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "BUILDING RHS", t.getElapsedTimeInMicroSec(), s.first_called);
+  t.start();
   add_soft_constraints(s, L);
   t.stop();
-  std::cout << "ADDING SOFT CONSTRAINTS TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
   t.start();
   L = L.triangularView<Eigen::Lower>();
   t.stop();
-  std::cout << "GETTING TRIANGULAR VIEW TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "GETTING TRIANGULAR VIEW TOOK ", t.getElapsedTimeInMicroSec(), s.first_called);
 }
 
 IGL_INLINE void build_linear_system_mkl(igl::SLIMData &s, Eigen::SparseMatrix<double> &L)
 {
-  std::cout << "BUILDING LINEAR SYSTEM USING MKL\n";
+  result_file << "START BUILDING LINEAR SYSTEM USING MKL\n";
   std::vector<Eigen::Triplet<double>> IJV;
   igl::Timer t;
   t.start();
   slim_buildA(s.Dx, s.Dy, s.Dz, s.W, IJV);
   t.stop();
-  std::cout << "SLIM_BUILDA TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "SLIM_BUILDA", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   if (s.A.rows() == 0)
   {
@@ -480,16 +481,16 @@ IGL_INLINE void build_linear_system_mkl(igl::SLIMData &s, Eigen::SparseMatrix<do
   else
     igl::sparse_cached(IJV, s.A_data, s.A);
   t.stop();
-  std::cout << "CONSTRUCTING MATRIX A TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "CONSTRUCTING MATRIX A", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   buildRhs(s, s.A);
   t.stop();
-  std::cout << "BUILDING RHS TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "BUILDING RHS", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   sparse_matrix_t A_mkl;
   create_mkl_csr_matrix(s.A, &A_mkl);
   t.stop();
-  std::cout << "CONVERTING A TO MKL FORMAT TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "CONVERTING A TO MKL FORMAT", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   Eigen::SparseMatrix<double> wgl_m(s.A.rows(), s.A.rows());
   std::vector<Eigen::Triplet<double>> wgl_m_trip(s.A.rows());
@@ -502,17 +503,20 @@ IGL_INLINE void build_linear_system_mkl(igl::SLIMData &s, Eigen::SparseMatrix<do
   sparse_matrix_t wgl_m_mkl;
   create_mkl_csr_matrix(wgl_m, &wgl_m_mkl);
   t.stop();
-  std::cout << "CREATING WGL_M_MKL TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "CREATING WGL_M_MKL TOOK ", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   Eigen::SparseMatrix<double> id_m(s.A.cols(), s.A.cols());
   id_m.setIdentity();
   id_m *= s.proximal_p;
+  t.stop();
+  write_to_file(result_file, "SETTING ID_M", t.getElapsedTimeInMicroSec(), s.first_called);
   add_soft_constraints(s, id_m);
   id_m.makeCompressed();
+  t.start();
   sparse_matrix_t id_m_mkl;
   create_mkl_csr_matrix(id_m, &id_m_mkl);
+  write_to_file(result_file, "CREATING PROXIMAL+SOFT_CONSTRAINTS MKL", t.getElapsedTimeInMicroSec(), s.first_called);
   t.stop();
-  std::cout << "CREATING ID_M_MKL TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
   t.start();
   if (s.first_called)
   {
@@ -520,11 +524,11 @@ IGL_INLINE void build_linear_system_mkl(igl::SLIMData &s, Eigen::SparseMatrix<do
   }
   mkl_sypr_final(A_mkl, wgl_m_mkl, s.symmetric_type, &s.ata_mkl);
   t.stop();
-  std::cout << "MKL COMPUTING ATDA TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "COMPUTE ATDA", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   mkl_sparse_add(s.ata_mkl, id_m_mkl, 1, &s.final_result);
   t.stop();
-  std::cout << "MKL ADDING PROXIMAL TERMS AND SOFT CONSTRAINTS TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "ADDING PROXIMAL AND SOFT CONST", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   if (s.first_called)
   {
@@ -536,18 +540,18 @@ IGL_INLINE void build_linear_system_mkl(igl::SLIMData &s, Eigen::SparseMatrix<do
     export_val_from_mkl(s.final_result, s.result_vector);
   }
   t.stop();
-  std::cout << "EXPORTING VALUES TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "EXPORTING CSR TOOK ", t.getElapsedTimeInMicroSec(), s.first_called);
 }
 
 IGL_INLINE void build_linear_system_numeric_together(igl::SLIMData &s, Eigen::SparseMatrix<double> &L)
 {
-  std::cout << "BUILDING LINEAR SYSTEM USING NUMERIC DOING ALL COMPUTATIONS TOGETHER\n";
+  result_file << "START BUILDING LINEAR SYSTEM USING NUMERIC DOING ALL COMPUTATIONS TOGETHER\n";
   std::vector<Eigen::Triplet<double>> IJV;
   igl::Timer t;
   t.start();
   slim_buildA(s.Dx, s.Dy, s.Dz, s.W, IJV);
   t.stop();
-  std::cout << "SLIM_BUILDA TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "SLIM_BUILDA", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   if (s.A.rows() == 0)
   {
@@ -558,15 +562,14 @@ IGL_INLINE void build_linear_system_numeric_together(igl::SLIMData &s, Eigen::Sp
   else
     igl::sparse_cached(IJV, s.A_data, s.A);
   t.stop();
-  std::cout << "CONSTRUCTING MATRIX A TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "CONSTRUCTING MATRIX A", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   buildRhs(s, s.A);
   t.stop();
-  std::cout << "BUILDING RHS TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "BUILDING RHS", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   add_soft_constraints_numeric_together(s);
   t.stop();
-  std::cout << "GETTING SOFT CONSTRAINTS VALUE " << t.getElapsedTimeInMicroSec() << " microseconds\n";
   if (s.first_called)
   {
     s.n_rows = s.A.cols();
@@ -619,22 +622,22 @@ IGL_INLINE void build_linear_system_numeric_together(igl::SLIMData &s, Eigen::Sp
   s.datas[0].assign(s.A.valuePtr(), s.A.valuePtr() + s.A.nonZeros());
   s.datas[2].assign(s.WGL_M.data(), s.WGL_M.data() + s.WGL_M.rows() * s.WGL_M.cols());
   t.stop();
-  std::cout << "ASSIGNING DATAS TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "ASSIGNING DATAS", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   s.ex.ExecuteMulti(s.datas, s.result_vector);
   t.stop();
-  std::cout << "NUMERIC COMPUTING EVERYTHING TOGETHER TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "COMPUTE EVERYTHING", t.getElapsedTimeInMicroSec(), s.first_called);
 }
 
 IGL_INLINE void build_linear_system_numeric_seperate(igl::SLIMData &s, Eigen::SparseMatrix<double> &L)
 {
-  std::cout << "BUILDING LINEAR SYSTEM USING NUMERIC DOING ALL COMPUTATIONS SEPERATE\n";
+  result_file << "START BUILDING LINEAR SYSTEM USING NUMERIC DOING ALL COMPUTATIONS SEPERATE\n";
   std::vector<Eigen::Triplet<double>> IJV;
   igl::Timer t;
   t.start();
   slim_buildA(s.Dx, s.Dy, s.Dz, s.W, IJV);
   t.stop();
-  std::cout << "SLIM_BUILDA TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "SLIM_BUILDA", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   if (s.A.rows() == 0)
   {
@@ -644,11 +647,11 @@ IGL_INLINE void build_linear_system_numeric_seperate(igl::SLIMData &s, Eigen::Sp
   else
     igl::sparse_cached(IJV, s.A_data, s.A);
   t.stop();
-  std::cout << "CONSTRUCTING MATRIX A TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "CONSTRUCTING MATRIX A", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   buildRhs(s, s.A);
   t.stop();
-  std::cout << "BUILDING RHS TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "BUILDING RHS", t.getElapsedTimeInMicroSec(), s.first_called);
   if (s.first_called)
   {
     s.n_rows = s.A.cols();
@@ -684,11 +687,9 @@ IGL_INLINE void build_linear_system_numeric_seperate(igl::SLIMData &s, Eigen::Sp
     // adding proximal terms to the diagonals
     for (int i = 0; i < zero_diagonal_row.size(); i++)
     {
-      std::cout << "Row " << zero_diagonal_row[i] << " adding proximal term\n";
       result_numeric.insert(zero_diagonal_row[i], zero_diagonal_row[i]) = ie::NumericType(s.proximal_p);
     }
 
-    std::cout << "Proximal initialize finished\n";
     result_numeric.makeCompressed();
     add_soft_constraints_numeric_seperate_pre(s, result_numeric);
     s.ex = ie::NumericExecutor(result_numeric, 0);
@@ -705,43 +706,68 @@ IGL_INLINE void build_linear_system_numeric_seperate(igl::SLIMData &s, Eigen::Sp
   s.datas[0].assign(s.A.valuePtr(), s.A.valuePtr() + s.A.nonZeros());
   s.datas[1].assign(s.WGL_M.data(), s.WGL_M.data() + s.WGL_M.rows() * s.WGL_M.cols());
   t.stop();
-  std::cout << "ASSIGNING DATAS TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "ASSIGNING DATAS", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   s.ex.ExecuteMulti(s.datas, s.result_vector);
   t.stop();
-  std::cout << "NUMERIC COMPUTING ATBA TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
+  write_to_file(result_file, "COMPUTE ATDA", t.getElapsedTimeInMicroSec(), s.first_called);
   t.start();
   add_soft_constraints_numeric_seperate_final(s);
   t.stop();
-  std::cout << "NUMERIC ADDING SOFT CONSTRAINTS AND PROXIMAL TERMS TOOK " << t.getElapsedTimeInMicroSec() << " microseconds\n";
 }
 
 IGL_INLINE void add_soft_constraints(igl::SLIMData &s, Eigen::SparseMatrix<double> &L)
 {
+  igl::Timer t;
+  t.start();
   int v_n = s.v_num;
   for (int d = 0; d < s.dim; d++)
   {
     for (int i = 0; i < s.b.rows(); i++)
     {
       int v_idx = s.b(i);
-      s.rhs(d * v_n + v_idx) += s.soft_const_p * s.bc(i, d);          // rhs
+      s.rhs(d * v_n + v_idx) += s.soft_const_p * s.bc(i, d); // rhs
+    }
+  }
+  t.stop();
+  write_to_file(result_file, "RHS ADD SOFT CONST", t.getElapsedTimeInMicroSec(), s.first_called);
+  for (int d = 0; d < s.dim; d++)
+  {
+    for (int i = 0; i < s.b.rows(); i++)
+    {
+      int v_idx = s.b(i);
       L.coeffRef(d * v_n + v_idx, d * v_n + v_idx) += s.soft_const_p; // diagonal of matrix
     }
   }
+  write_to_file(result_file, "L ADD SOFT CONST", t.getElapsedTimeInMicroSec(), s.first_called);
 }
 
 IGL_INLINE void add_soft_constraints(igl::SLIMData &s, Eigen::SparseMatrix<double, Eigen::RowMajor> &L)
 {
+  igl::Timer t;
+  t.start();
   int v_n = s.v_num;
   for (int d = 0; d < s.dim; d++)
   {
     for (int i = 0; i < s.b.rows(); i++)
     {
       int v_idx = s.b(i);
-      s.rhs(d * v_n + v_idx) += s.soft_const_p * s.bc(i, d);          // rhs
+      s.rhs(d * v_n + v_idx) += s.soft_const_p * s.bc(i, d); // rhs
+    }
+  }
+  t.stop();
+  write_to_file(result_file, "RHS ADD SOFT CONST", t.getElapsedTimeInMicroSec(), s.first_called);
+  t.start();
+  for (int d = 0; d < s.dim; d++)
+  {
+    for (int i = 0; i < s.b.rows(); i++)
+    {
+      int v_idx = s.b(i);
       L.coeffRef(d * v_n + v_idx, d * v_n + v_idx) += s.soft_const_p; // diagonal of matrix
     }
   }
+  t.stop();
+  write_to_file(result_file, "L ADD SOFT CONST", t.getElapsedTimeInMicroSec(), s.first_called);
 }
 
 IGL_INLINE void add_soft_constraints_numeric_together(igl::SLIMData &s)
@@ -774,17 +800,30 @@ IGL_INLINE void add_soft_constraints_numeric_together(igl::SLIMData &s)
     }
   }
   // now rearrange the values
+  igl::Timer t;
+  t.start();
+  for (int d = 0; d < s.dim; d++)
+  {
+    for (int i = 0; i < s.b.rows(); i++)
+    {
+      int v_idx = s.b(i);
+      s.rhs(d * v_n + v_idx) += s.soft_const_p * s.bc(i, d); // rhs
+    }
+  }
+  t.stop();
+  write_to_file(result_file, "RHS ADD SOFT CONST", t.getElapsedTimeInMicroSec(), s.first_called);
+  t.start();
   pos = 0;
   for (int d = 0; d < s.dim; d++)
   {
     for (int i = 0; i < s.b.rows(); i++)
     {
       s.datas[1][s.soft_constraints_pos[pos]] = s.soft_const_p;
-      int v_idx = s.b(i);
-      s.rhs(d * v_n + v_idx) += s.soft_const_p * s.bc(i, d); // rhs
       pos++;
     }
   }
+  t.stop();
+  write_to_file(result_file, "NUMERIC SET DATA 2", t.getElapsedTimeInMicroSec(), s.first_called);
 }
 
 IGL_INLINE void add_soft_constraints_numeric_seperate_pre(igl::SLIMData &s, Eigen::SparseMatrix<ie::NumericType> &L)
@@ -828,20 +867,35 @@ IGL_INLINE void add_soft_constraints_numeric_seperate_final(igl::SLIMData &s)
 {
   int v_n = s.v_num;
   int index = 0;
+  igl::Timer t;
+  t.start();
   for (int d = 0; d < s.dim; d++)
   {
     for (int i = 0; i < s.b.rows(); i++)
     {
       int v_idx = s.b(i);
-      s.rhs(d * v_n + v_idx) += s.soft_const_p * s.bc(i, d);              // rhs
+      s.rhs(d * v_n + v_idx) += s.soft_const_p * s.bc(i, d); // rhs
+    }
+  }
+  t.stop();
+  write_to_file(result_file, "RHS ADD SOFT CONST", t.getElapsedTimeInMicroSec(), s.first_called);
+  t.start();
+  for (int d = 0; d < s.dim; d++)
+  {
+    for (int i = 0; i < s.b.rows(); i++)
+    {
       s.result_vector[s.soft_constraints_index[index]] += s.soft_const_p; // diagonal of matrix
-      // std::cout << s.soft_constraints_index[index] << " added soft const\n";
       index++;
     }
   }
+  t.stop();
+  write_to_file(result_file, "L ADD SOFT CONST", t.getElapsedTimeInMicroSec(), s.first_called);
+  t.start();
   tbb::parallel_for(size_t(0), size_t(s.diagonal_index.size()), [&](size_t i) {
     s.result_vector[s.diagonal_index[i]] += s.proximal_p;
   });
+  t.stop();
+  write_to_file(result_file, "L ADD PROXIMAL", t.getElapsedTimeInMicroSec(), s.first_called);
 }
 
 IGL_INLINE double compute_energy(igl::SLIMData &s, Eigen::MatrixXd &V_new)

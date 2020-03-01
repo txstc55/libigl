@@ -26,6 +26,7 @@
 
 #include <string>
 #include <vector>
+#include <igl/writeOBJ.h>
 
 using namespace std;
 using namespace Eigen;
@@ -283,6 +284,7 @@ void display_3d_mesh()
     F_temp.row(i * 4 + 2) << (i * 4) + 3, (i * 4) + 2, (i * 4) + 0;
     F_temp.row(i * 4 + 3) << (i * 4) + 1, (i * 4) + 2, (i * 4) + 3;
   }
+  // igl::writeOBJ("finished_obj.obj", V_temp, F_temp);
 }
 
 int main(int argc, char *argv[])

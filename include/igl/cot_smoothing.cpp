@@ -116,7 +116,7 @@ IGL_INLINE void build_linear_system_mkl(COTSMOOTHData &c)
     sparse_matrix_t M_mkl;
     create_mkl_csr_matrix(c.M, &M_mkl);
     t.stop();
-    write_to_file(result_file, "CONVERTING L TO MKL FORMAT", t.getElapsedTimeInMicroSec(), c.first_called);
+    write_to_file(result_file, "CONVERTING M TO MKL FORMAT", t.getElapsedTimeInMicroSec(), c.first_called);
     if (c.first_called)
     {
         mkl_sypr_pre(L_mkl, M_mkl, c.symmetric_type, &c.ata_mkl);

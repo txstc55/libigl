@@ -47,6 +47,7 @@ endif()
 
 ## slim for our purpose does not need opengl
 add_subdirectory("709_SLIM")
+add_subdirectory("205_Laplacian")
 
 #######################
 if(NOT (LIBIGL_WITH_OPENGL AND LIBIGL_WITH_OPENGL_GLFW) )

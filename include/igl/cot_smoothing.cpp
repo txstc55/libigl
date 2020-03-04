@@ -85,7 +85,7 @@ IGL_INLINE void build_linear_system_eigen(COTSMOOTHData &c)
     t.stop();
     write_to_file(result_file, "TAKING TRANSPOSE", t.getElapsedTimeInMicroSec(), c.first_called);
     t.start();
-    c.lhs = c.L.transpose() * c.M * c.L + c.w * c.M;
+    c.lhs = Lt * c.M * c.L + c.w * c.M;
     t.stop();
     write_to_file(result_file, "EIGEN COMPUTATION", t.getElapsedTimeInMicroSec(), c.first_called);
     t.start();

@@ -20,7 +20,7 @@ solve = [float(x["SOLVE"])/100 for x in results]
 
 bars = np.add(solve, compute).tolist()
 
-N = 5
+N = len(results)
 
 ind = np.arange(N)    # the x locations for the groups
 width = 0.35       # the width of the bars: can also be len(x) sequence

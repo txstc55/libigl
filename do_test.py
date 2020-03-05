@@ -5,10 +5,12 @@ parser = argparse.ArgumentParser(description='Process demo type and file name')
 parser.add_argument("--d", default= 1, help="Demo type, from 1 to 3")
 parser.add_argument("--f", default= "", help="input mesh name, has to be in tutorial/data folder already")
 parser.add_argument("--e", default= 0, help="Example, 0 for slim, 1 for cotangent smoothing")
+parser.add_argument("--w", default= "1000000", help="Example, 0 for slim, 1 for cotangent smoothing")
 args = parser.parse_args()
 file = args.f
 example = int(args.e)
 demo_type = int(args.d)
+weight = int(args.w)
 
 if (file!=""):
     file = " -f "+file
@@ -166,20 +168,20 @@ if example == 0:
         json.dump([eigen_data,mkl_data,numeric1_data,numeric2_data],j)
 elif example == 1:
     ## do eigen tests
-    os.system("cd build && ./tutorial/205_Laplacian_bin -m 0"+ file +" && cd ..")
+    os.system("cd build && ./tutorial/205_Laplacian_bin -w "+weight+" -m 0"+ file +" && cd ..")
     os.system("mv build/result_cot.txt result_datas/result_cot_eigen.txt && mv build/cot_smoothed.obj result_datas/cot_smoothed_eigen.obj")
 
     ## do mkl tests
-    os.system("cd build && ./tutorial/205_Laplacian_bin -m 2"+ file +" && cd ..")
+    os.system("cd build && ./tutorial/205_Laplacian_bin -w "+weight+" -m 2"+ file +" && cd ..")
     os.system("mv build/result_cot.txt result_datas/result_cot_mkl.txt && mv build/cot_smoothed.obj result_datas/cot_smoothed_mkl.obj")
 
 
     ## do numeric 1 tests
-    os.system("cd build && ./tutorial/205_Laplacian_bin -m 3"+ file +" && cd ..")
+    os.system("cd build && ./tutorial/205_Laplacian_bin -w "+weight+" -m 3"+ file +" && cd ..")
     os.system("mv build/result_cot.txt result_datas/result_cot_numeric1.txt && mv build/cot_smoothed.obj result_datas/cot_smoothed_numeric1.obj")
 
     ## do numeric 2 tests
-    os.system("cd build && ./tutorial/205_Laplacian_bin -m 4"+ file +" && cd ..")
+    os.system("cd build && ./tutorial/205_Laplacian_bin -w "+weight+" -m 4"+ file +" && cd ..")
     os.system("mv build/result_cot.txt result_datas/result_cot_numeric2.txt && mv build/cot_smoothed.obj result_datas/cot_smoothed_numeric2.obj")
 
 

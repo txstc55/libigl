@@ -306,8 +306,6 @@ IGL_INLINE void cot_smooth_solve(COTSMOOTHData &c)
     t.stop();
     write_to_file(result_file, "MKL SOLVING", t.getElapsedTimeInMicroSec(), c.first_called);
 
-    MatrixXd ori = c.smoothedV;
-
     // putting it back into the smoothedV
     c.smoothedV = Map<MatrixXd>(solved.data(), c.rhs.rows(), 3);
     c.first_called = false;

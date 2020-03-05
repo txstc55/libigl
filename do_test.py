@@ -167,20 +167,20 @@ if example == 0:
 elif example == 1:
     ## do eigen tests
     os.system("cd build && ./tutorial/205_Laplacian_bin -m 0"+ file +" && cd ..")
-    os.system("mv build/result_cot.txt result_datas/result_cot_eigen.txt")
+    os.system("mv build/result_cot.txt result_datas/result_cot_eigen.txt && mv build/cot_smoothed.obj result_datas/cot_smoothed_eigen.obj")
 
     ## do mkl tests
     os.system("cd build && ./tutorial/205_Laplacian_bin -m 2"+ file +" && cd ..")
-    os.system("mv build/result_cot.txt result_datas/result_cot_mkl.txt")
+    os.system("mv build/result_cot.txt result_datas/result_cot_mkl.txt && mv build/cot_smoothed.obj result_datas/cot_smoothed_mkl.obj")
 
 
     ## do numeric 1 tests
     os.system("cd build && ./tutorial/205_Laplacian_bin -m 3"+ file +" && cd ..")
-    os.system("mv build/result_cot.txt result_datas/result_cot_numeric1.txt")
+    os.system("mv build/result_cot.txt result_datas/result_cot_numeric1.txt && mv build/cot_smoothed.obj result_datas/cot_smoothed_numeric1.obj")
 
     ## do numeric 2 tests
     os.system("cd build && ./tutorial/205_Laplacian_bin -m 4"+ file +" && cd ..")
-    os.system("mv build/result_cot.txt result_datas/result_cot_numeric2.txt")
+    os.system("mv build/result_cot.txt result_datas/result_cot_numeric2.txt && mv build/cot_smoothed.obj result_datas/cot_smoothed_numeric2.obj")
 
 
     f = open("result_datas/result_cot_eigen.txt")

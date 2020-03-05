@@ -10,7 +10,7 @@ args = parser.parse_args()
 file = args.f
 example = int(args.e)
 demo_type = int(args.d)
-weight = int(args.w)
+weight = str(int(args.w))
 
 if (file!=""):
     file = " -f "+file

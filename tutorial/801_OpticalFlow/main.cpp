@@ -43,13 +43,13 @@ int main()
     igl::write_image(im2, "test_image2.png");
 
     std::cout << "load image\n";
-    igl::load_image1(o, "test_image2.png");
-    igl::load_image2(o, "test_image1.png");
+    igl::load_image1(o, "test_image1.png");
+    igl::load_image2(o, "test_image2.png");
 
     std::cout << "Dimensions: " << o.height << " " << o.width << "\n";
 
     o.alpha = 1.0;
-    for (int i = 0; i < 1; i++)
+    for (int i = 0; i < 100; i++)
     {
         std::cout << "iteration " << i << "\n";
         igl::solve_flow(o);

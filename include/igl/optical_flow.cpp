@@ -19,114 +19,6 @@ double unsignedchar_2_double(const unsigned char c)
     return (double)c / 255.0;
 }
 
-double masked_position(const OPTICALData &o, const int row, const int col)
-{
-    double x_flow = std::max(std::min(o.u(row, col), o.height - row * 1.0 - 1), -row * 1.0);
-    double y_flow = std::max(std::min(o.v(row, col), o.width - col * 1.0 - 1), -col * 1.0);
-    return o.image2(round(row + round(x_flow)), round(col + round(y_flow)));
-}
-
-IGL_INLINE void median_filter(Eigen::MatrixXd &m)
-{
-    Eigen::MatrixXd filtered_m = m;
-    std::vector<double> neighbors;
-    neighbors.resize(9);
-    for (int w = 1; w < m.cols() - 1; w++)
-    {
-        for (int h = 1; h < m.rows() - 1; h++)
-        {
-            neighbors[0] = m(h - 1, w - 1);
-            neighbors[1] = m(h - 1, w);
-            neighbors[2] = m(h - 1, w + 1);
-            neighbors[3] = m(h, w - 1);
-            neighbors[4] = m(h, w);
-            neighbors[5] = m(h, w + 1);
-            neighbors[6] = m(h + 1, w - 1);
-            neighbors[7] = m(h + 1, w);
-            neighbors[8] = m(h + 1, w + 1);
-            std::sort(neighbors.begin(), neighbors.end());
-            filtered_m(h, w) = neighbors[4];
-        }
-    }
-    neighbors.resize(6);
-    // dealing with the borders
-    for (int w = 1; w < m.cols() - 1; w++)
-    {
-        neighbors[0] = m(0, w - 1);
-        neighbors[1] = m(0, w);
-        neighbors[2] = m(0, w + 1);
-        neighbors[3] = m(1, w - 1);
-        neighbors[4] = m(1, w);
-        neighbors[5] = m(1, w + 1);
-        std::sort(neighbors.begin(), neighbors.end());
-        filtered_m(0, w) = (neighbors[2] + neighbors[3]) / 2;
-    }
-    for (int w = 1; w < m.cols() - 1; w++)
-    {
-        neighbors[0] = m(m.rows() - 1, w - 1);
-        neighbors[1] = m(m.rows() - 1, w);
-        neighbors[2] = m(m.rows() - 1, w + 1);
-        neighbors[3] = m(m.rows() - 2, w - 1);
-        neighbors[4] = m(m.rows() - 2, w);
-        neighbors[5] = m(m.rows() - 2, w + 1);
-        std::sort(neighbors.begin(), neighbors.end());
-        filtered_m(m.rows() - 1, w) = (neighbors[2] + neighbors[3]) / 2;
-    }
-    for (int h = 1; h < m.rows() - 1; h++)
-    {
-        neighbors[0] = m(h - 1, 0);
-        neighbors[1] = m(h, 0);
-        neighbors[2] = m(h + 1, 0);
-        neighbors[3] = m(h - 1, 1);
-        neighbors[4] = m(h, 1);
-        neighbors[5] = m(h + 1, 1);
-        std::sort(neighbors.begin(), neighbors.end());
-        filtered_m(h, 0) = (neighbors[2] + neighbors[3]) / 2;
-    }
-    for (int h = 1; h < m.rows() - 1; h++)
-    {
-        neighbors[0] = m(h - 1, m.cols() - 1);
-        neighbors[1] = m(h, m.cols() - 1);
-        neighbors[2] = m(h + 1, m.cols() - 1);
-        neighbors[3] = m(h - 1, m.cols() - 2);
-        neighbors[4] = m(h, m.cols() - 2);
-        neighbors[5] = m(h + 1, m.cols() - 2);
-        std::sort(neighbors.begin(), neighbors.end());
-        filtered_m(h, m.cols() - 1) = (neighbors[2] + neighbors[3]) / 2;
-    }
-    neighbors.resize(4);
-    neighbors[0] = m(0, 0);
-    neighbors[1] = m(0, 1);
-    neighbors[2] = m(1, 0);
-    neighbors[3] = m(1, 1);
-    std::sort(neighbors.begin(), neighbors.end());
-    filtered_m(0, 0) = (neighbors[1] + neighbors[2]) / 2;
-    neighbors[0] = m(0, m.cols() - 1);
-    neighbors[1] = m(0, m.cols() - 2);
-    neighbors[2] = m(1, m.cols() - 1);
-    neighbors[3] = m(1, m.cols() - 2);
-    std::sort(neighbors.begin(), neighbors.end());
-    filtered_m(0, m.cols() - 1) = (neighbors[1] + neighbors[2]) / 2;
-    neighbors[0] = m(m.rows() - 1, 0);
-    neighbors[1] = m(m.rows() - 1, 1);
-    neighbors[2] = m(m.rows() - 2, 0);
-    neighbors[3] = m(m.rows() - 2, 1);
-    std::sort(neighbors.begin(), neighbors.end());
-    filtered_m(m.rows() - 1, 0) = (neighbors[1] + neighbors[2]) / 2;
-    neighbors[0] = m(0, 0);
-    neighbors[1] = m(0, 1);
-    neighbors[2] = m(1, 0);
-    neighbors[3] = m(1, 1);
-    std::sort(neighbors.begin(), neighbors.end());
-    filtered_m(0, 0) = (neighbors[1] + neighbors[2]) / 2;
-    neighbors[0] = m(m.rows() - 1, m.cols() - 1);
-    neighbors[1] = m(m.rows() - 1, m.cols() - 2);
-    neighbors[2] = m(m.rows() - 2, m.cols() - 1);
-    neighbors[3] = m(m.rows() - 2, m.cols() - 2);
-    std::sort(neighbors.begin(), neighbors.end());
-    filtered_m(m.rows() - 1, m.cols() - 1) = (neighbors[1] + neighbors[2]) / 2;
-    m = filtered_m;
-}
 
 IGL_INLINE void write_image(Eigen::MatrixXd im, std::string file_name)
 {
@@ -202,7 +94,7 @@ IGL_INLINE void compute_ix(OPTICALData &o)
     {
         for (int h = 0; h < o.height - 1; h++)
         {
-            o.Ix(h, w) = (o.image1(h, w + 1) - o.image1(h, w) + o.image1(h + 1, w + 1) - o.image1(h + 1, w) + masked_position(o, h, w + 1) - masked_position(o, h, w) + masked_position(o, h + 1, w + 1) - masked_position(o, h + 1, w)) / 4;
+            o.Ix(h, w) = (o.image1(h, w + 1) - o.image1(h, w) + o.image1(h + 1, w + 1) - o.image1(h + 1, w) + o.image2(h, w + 1) - o.image2(h, w) + o.image2(h + 1, w + 1) - o.image2(h + 1, w)) / 4;
         }
     }
     // set the boundary now
@@ -213,7 +105,7 @@ IGL_INLINE void compute_ix(OPTICALData &o)
 
     for (int w = 0; w < o.width - 1; w++)
     {
-        o.Ix(o.height - 1, w) = (o.image1(o.height - 1, w + 1) - o.image1(o.height - 1, w) + masked_position(o, o.height - 1, w + 1) - masked_position(o, o.height - 1, w)) / 4;
+        o.Ix(o.height - 1, w) = (o.image1(o.height - 1, w + 1) - o.image1(o.height - 1, w) + o.image2(o.height - 1, w + 1) - o.image2(o.height - 1, w)) / 2;
     }
     // now do the corner
     o.Ix(o.height - 1, o.width - 1) = o.Ix(o.height - 1, o.width - 2);
@@ -225,13 +117,13 @@ IGL_INLINE void compute_iy(OPTICALData &o)
     {
         for (int h = 0; h < o.height - 1; h++)
         {
-            o.Iy(h, w) = (o.image1(h + 1, w) - o.image1(h, w) + o.image1(h + 1, w + 1) - o.image1(h, w + 1) + masked_position(o, h + 1, w) - masked_position(o, h, w) + masked_position(o, h + 1, w + 1) - masked_position(o, h, w + 1)) / 4;
+            o.Iy(h, w) = (o.image1(h + 1, w) - o.image1(h, w) + o.image1(h + 1, w + 1) - o.image1(h, w + 1) + o.image2(h + 1, w) - o.image2(h, w) + o.image2(h + 1, w + 1) - o.image2(h, w + 1)) / 4;
         }
     }
     // set the boundary now
     for (int h = 0; h < o.height - 1; h++)
     {
-        o.Iy(h, o.width - 1) = (o.image1(h + 1, o.width - 1) - o.image1(h, o.width - 1) + masked_position(o, h + 1, o.width - 1) - masked_position(o, h, o.width - 1)) / 4;
+        o.Iy(h, o.width - 1) = (o.image1(h + 1, o.width - 1) - o.image1(h, o.width - 1) + o.image2(h + 1, o.width - 1) - o.image2(h, o.width - 1)) / 2;
     }
 
     for (int w = 0; w < o.width - 1; w++)
@@ -248,19 +140,19 @@ IGL_INLINE void compute_it(OPTICALData &o)
     {
         for (int h = 0; h < o.height - 1; h++)
         {
-            o.It(h, w) = (masked_position(o, h, w) - o.image1(h, w) + masked_position(o, h + 1, w) - o.image1(h + 1, w) + masked_position(o, h, w + 1) - o.image1(h, w + 1) + masked_position(o, h + 1, w + 1) - o.image1(h + 1, w + 1)) / 4;
+            o.It(h, w) = (o.image2(h, w) - o.image1(h, w) + o.image2(h + 1, w) - o.image1(h + 1, w) + o.image2(h, w + 1) - o.image1(h, w + 1) + o.image2(h + 1, w + 1) - o.image1(h + 1, w + 1)) / 4;
         }
     }
 
     for (int h = 0; h < o.height - 1; h++)
     {
-        o.It(h, o.width - 1) = (masked_position(o, h, o.width - 1) - o.image1(h, o.width - 1) + masked_position(o, h + 1, o.width - 1) - o.image1(h + 1, o.width - 1)) / 4;
+        o.It(h, o.width - 1) = (o.image2(h, o.width - 1) - o.image1(h, o.width - 1) + o.image2(h + 1, o.width - 1) - o.image1(h + 1, o.width - 1)) / 2;
     }
     for (int w = 0; w < o.width - 1; w++)
     {
-        o.It(o.height - 1, w) = (masked_position(o, o.height - 1, w) - o.image1(o.height - 1, w) + masked_position(o, o.height - 1, w + 1) - o.image1(o.height - 1, w + 1)) / 4;
+        o.It(o.height - 1, w) = (o.image2(o.height - 1, w) - o.image1(o.height - 1, w) + o.image2(o.height - 1, w + 1) - o.image1(o.height - 1, w + 1)) / 2;
     }
-    o.It(o.height - 1, o.width - 1) = masked_position(o, o.height - 1, o.width - 1) - o.image1(o.height - 1, o.width - 1);
+    o.It(o.height - 1, o.width - 1) = o.image2(o.height - 1, o.width - 1) - o.image1(o.height - 1, o.width - 1);
 }
 
 IGL_INLINE void compute_ubar(OPTICALData &o)

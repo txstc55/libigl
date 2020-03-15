@@ -4,7 +4,7 @@ import argparse
 parser = argparse.ArgumentParser(description='Process demo type and file name')
 parser.add_argument("--d", default= 1, help="Demo type, from 1 to 3")
 parser.add_argument("--f", default= "", help="input mesh name, has to be in tutorial/data folder already")
-parser.add_argument("--e", default= 0, help="Example, 0 for slim, 1 for cotangent smoothing")
+parser.add_argument("--e", default= 0, help="Example, 0 for slim, 1 for cotangent smoothing, 2 for optical flow")
 parser.add_argument("--w", default= "1000000", help="Example, 0 for slim, 1 for cotangent smoothing")
 args = parser.parse_args()
 file = args.f
@@ -242,3 +242,62 @@ elif example == 1:
     import json
     with open('result_datas/all_result_cot.json', 'w') as j:
         json.dump([eigen_data,mkl_data,numeric1_data,numeric2_data],j)
+
+elif example==2:
+    ## do eigen tests
+    os.system("cd build && ./tutorial/801_OpticalFlow_bin -m 0" +" && cd ..")
+    os.system("mv build/result_opt.txt result_datas/result_opt_eigen.txt")
+
+
+    ## do numeric multi tests
+    os.system("cd build && ./tutorial/801_OpticalFlow_bin -m 3" +" && cd ..")
+    os.system("mv build/result_opt.txt result_datas/result_opt_numeric1.txt")
+
+    ## do numeric single tests
+    os.system("cd build && ./tutorial/801_OpticalFlow_bin -m 4" +" && cd ..")
+    os.system("mv build/result_opt.txt result_datas/result_opt_numeric2.txt")
+
+
+    f = open("result_datas/result_opt_eigen.txt")
+    count = 0
+    for line in f:
+        if not line.startswith("START"):
+            count = count%7
+            if count == 0 or count == 3 or count == 6:
+                eigen_data["ASSEMBLE"] += float(line.split(": ")[1])
+            elif count == 1 or count == 2:
+                eigen_data["COMPUTE"] += float(line.split(": ")[1])
+            else:
+                eigen_data["SOLVE"] += float(line.split(": ")[1])
+            count+=1
+
+    f = open("result_datas/result_opt_numeric1.txt")
+    count = 0
+    for line in f:
+        if not line.startswith("START"):
+            count = count%6
+            if count == 0 or count == 2 or count == 5:
+                numeric1_data["ASSEMBLE"] += float(line.split(": ")[1])
+            elif count == 1:
+                numeric1_data["COMPUTE"] += float(line.split(": ")[1])
+            else:
+                numeric1_data["SOLVE"] += float(line.split(": ")[1])
+            count+=1
+
+
+    f = open("result_datas/result_opt_numeric2.txt")
+    count = 0
+    for line in f:
+        if not line.startswith("START"):
+            count = count%6
+            if count == 0 or count == 2 or count == 5:
+                numeric2_data["ASSEMBLE"] += float(line.split(": ")[1])
+            elif count == 1:
+                numeric2_data["COMPUTE"] += float(line.split(": ")[1])
+            else:
+                numeric2_data["SOLVE"] += float(line.split(": ")[1])
+            count+=1
+
+    import json
+    with open('result_datas/all_result_opt.json', 'w') as j:
+        json.dump([eigen_data,numeric1_data,numeric2_data],j)

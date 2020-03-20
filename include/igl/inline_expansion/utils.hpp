@@ -201,10 +201,10 @@ to_dense_numeric(
     Eigen::Matrix<ie::NumericType, Eigen::Dynamic, Eigen::Dynamic> M(A.rows(), A.cols());
     (*ie::NumericType::pool).tree_node_pool.reserve(std::max((*ie::NumericType::pool).tree_node_pool.capacity() + A.rows() * A.cols(), (*ie::NumericType::pool).tree_node_pool.capacity() * A.rows()));
     int count = 0;
-    for (int i = 0; i < A.rows(); ++i) {
-        for (int j = 0; j < A.cols(); ++j) {
+    for (int i = 0; i < A.cols(); ++i) {
+        for (int j = 0; j < A.rows(); ++j) {
             // set matrix id and fake data id
-            M(i, j) = ie::NumericType(matrix_id, count);
+            M(j, i) = ie::NumericType(matrix_id, count);
             count++;
         }
     }

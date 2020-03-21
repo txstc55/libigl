@@ -339,7 +339,6 @@ IGL_INLINE void build_lhs_numeric_multi_together(OPTICALData &o)
         v_bar_numeric.resize(o.height, o.width);
         u_numeric.resize(o.height, o.width);
         v_numeric.resize(o.height, o.width);
-
         image1_numeric = ie::to_dense_numeric(o.image1, 0);
         image2_numeric = ie::to_dense_numeric(o.image2, 1);
         u_numeric = ie::to_dense_numeric(o.u, 2);

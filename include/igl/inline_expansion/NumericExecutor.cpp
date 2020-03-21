@@ -13,8 +13,8 @@ NumericExecutor::NumericExecutor(Eigen::SparseMatrix<ie::NumericType, Eigen::Row
     tbb::parallel_for(size_t(0), size_t(R.nonZeros()), [&](size_t i) {
         R.valuePtr()[i].accept(this->th, i);
     });
-    this->choice = choice;
-    NumericType::clear_pool();
+    // this->choice = choice;
+    // NumericType::clear_pool();
 
     // for grouped function
     cout << "Group by tree type method chosen\n";
@@ -30,8 +30,8 @@ NumericExecutor::NumericExecutor(Eigen::SparseMatrix<ie::NumericType, Eigen::Col
     tbb::parallel_for(size_t(0), size_t(R.nonZeros()), [&](size_t i) {
         R.valuePtr()[i].accept(this->th, i);
     });
-    this->choice = choice;
-    NumericType::clear_pool();
+    // this->choice = choice;
+    // NumericType::clear_pool();
 
     // for grouped function
     cout << "Group by tree type method chosen\n";

@@ -173,7 +173,7 @@ to_sparse_numeric(
     unsigned int data_id = 0;
     std::vector<Eigen::Triplet<ie::NumericType>> trip;
     trip.reserve(A.nonZeros());
-    (*ie::NumericType::pool).tree_node_pool.reserve(std::max((*ie::NumericType::pool).tree_node_pool.capacity() + A.nonZeros(), (*ie::NumericType::pool).tree_node_pool.capacity() * 2 * int(A.nonZeros() / A.rows())));
+    (*ie::NumericType::pool).tree_node_pool.reserve(std::max((*ie::NumericType::pool).tree_node_pool.size() + A.nonZeros(), (*ie::NumericType::pool).tree_node_pool.size() * 2 * int(A.nonZeros() / A.rows())));
     for (unsigned int i = 0; i < A.outerSize(); ++i) {
         for (typename Eigen::SparseMatrix<T, _Options>::InnerIterator it(A, i); it; ++it) {
             trip.push_back(Eigen::Triplet<ie::NumericType>(it.row(), it.col(), ie::NumericType(matrix_id, data_id)));
@@ -199,7 +199,7 @@ to_dense_numeric(
     int matrix_id)
 {
     Eigen::Matrix<ie::NumericType, Eigen::Dynamic, Eigen::Dynamic> M(A.rows(), A.cols());
-    (*ie::NumericType::pool).tree_node_pool.reserve(std::max((*ie::NumericType::pool).tree_node_pool.capacity() + A.rows() * A.cols(), (*ie::NumericType::pool).tree_node_pool.capacity() * A.rows()));
+    (*ie::NumericType::pool).tree_node_pool.reserve((*ie::NumericType::pool).tree_node_pool.size() + A.rows() * A.cols());
     int count = 0;
     for (int i = 0; i < A.cols(); ++i) {
         for (int j = 0; j < A.rows(); ++j) {

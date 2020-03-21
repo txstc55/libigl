@@ -40,6 +40,8 @@ struct OPTICALData
     std::vector<int> L_outer;               // the outerindexptr
     std::vector<int> L_inner;               // the innerindexptr
     std::vector<std::vector<double>> datas; // datas for executor
+    std::vector<double> rhs_vector;         // because we can alsu compute rhs by our way
+    ie::NumericExecutor ex_rhs;             // the holy executor, our lord and savior
 };
 
 IGL_INLINE void load_image1(OPTICALData &o, std::string file_name);     // load image1

@@ -8,6 +8,7 @@
 #include <vector>
 #include "test_record_util.h"
 #include "Timer.h"
+#include "inline_expansion/utils.hpp"
 
 namespace igl
 {
@@ -25,6 +26,17 @@ double unsignedchar_2_double(const unsigned char c)
 }
 
 // return value if not out of bound
+ie::NumericType return_matrix_value_numeric(Eigen::Matrix<ie::NumericType, Eigen::Dynamic, Eigen::Dynamic> &m, const int i, const int j)
+{
+    if (i == -1 || j == -1 || i == m.rows() || j == m.cols())
+    {
+        return 0;
+    }
+    else
+    {
+        return m(i, j);
+    }
+}
 double return_matrix_value(const Eigen::MatrixXd &m, const int i, const int j)
 {
     if (i == -1 || j == -1 || i == m.rows() || j == m.cols())
@@ -310,30 +322,74 @@ IGL_INLINE void build_lhs_numeric_multi(OPTICALData &o)
     write_to_file(result_file, "NUMERIC MULTI COMPUTE SPARSE MATRIX", t.getElapsedTimeInMicroSec(), o.first_called);
 }
 
-IGL_INLINE void build_lhs_numeric_single(OPTICALData &o)
+IGL_INLINE void build_lhs_numeric_multi_together(OPTICALData &o)
 {
-    result_file << "START BUILDING LEFT HAND SIDE USING NUMERIC TYPE SINGLE-THREADED\n";
+    result_file << "START BUILDING LEFT HAND SIDE USING NUMERIC TYPE BUILDING EVERYTHING TOGETHER\n";
     igl::Timer t;
-    t.start();
-    compute_ix(o);
-    compute_iy(o);
-    compute_it(o);
-    t.stop();
-    write_to_file(result_file, "COMPUTE IX, IY, IT", t.getElapsedTimeInMicroSec(), o.first_called);
     if (o.first_called)
     {
+        typedef Eigen::Matrix<ie::NumericType, Eigen::Dynamic, Eigen::Dynamic> MatrixNum;
+        MatrixNum image1_numeric, image2_numeric, ix_numeric, iy_numeric, it_numeric, u_bar_numeric, v_bar_numeric, u_numeric, v_numeric;
+        image1_numeric.resize(o.height, o.width);
+        image2_numeric.resize(o.height, o.width);
+        ix_numeric.resize(o.height, o.width);
+        iy_numeric.resize(o.height, o.width);
+        it_numeric.resize(o.height, o.width);
+        u_bar_numeric.resize(o.height, o.width);
+        v_bar_numeric.resize(o.height, o.width);
+        u_numeric.resize(o.height, o.width);
+        v_numeric.resize(o.height, o.width);
+
+        image1_numeric = ie::to_dense_numeric(o.image1, 0);
+        image2_numeric = ie::to_dense_numeric(o.image2, 1);
+        u_numeric = ie::to_dense_numeric(o.u, 2);
+        v_numeric = ie::to_dense_numeric(o.v, 3);
+
+        for (int w = 0; w < o.width - 1; w++)
+        {
+            for (int h = 0; h < o.height - 1; h++)
+            {
+                ix_numeric(h, w) = (image1_numeric(h, w + 1) - image1_numeric(h, w) + image1_numeric(h + 1, w + 1) - image1_numeric(h + 1, w) + image2_numeric(h, w + 1) - image2_numeric(h, w) + image2_numeric(h + 1, w + 1) - image2_numeric(h + 1, w)) / 4.0;
+                iy_numeric(h, w) = (image1_numeric(h + 1, w) - image1_numeric(h, w) + image1_numeric(h + 1, w + 1) - image1_numeric(h, w + 1) + image2_numeric(h + 1, w) - image2_numeric(h, w) + image2_numeric(h + 1, w + 1) - image2_numeric(h, w + 1)) / 4.0;
+            }
+        }
+        // set the boundary now
+        for (int w = 0; w < o.width - 1; w++)
+        {
+            ix_numeric(o.height - 1, w) = 0.0;
+            iy_numeric(o.height - 1, w) = 0.0;
+        }
+        for (int h = 0; h < o.height; h++)
+        {
+            ix_numeric(h, o.width - 1) = 0.0;
+            iy_numeric(h, o.width - 1) = 0.0;
+        }
+        for (int w = 0; w < o.width; w++)
+        {
+            for (int h = 0; h < o.height; h++)
+            {
+                it_numeric(h, w) = (return_matrix_value_numeric(image2_numeric, h, w) - return_matrix_value_numeric(image1_numeric, h, w) + return_matrix_value_numeric(image2_numeric, h + 1, w) - return_matrix_value_numeric(image1_numeric, h + 1, w) + return_matrix_value_numeric(image2_numeric, h, w + 1) - return_matrix_value_numeric(image1_numeric, h, w + 1) + return_matrix_value_numeric(image2_numeric, h + 1, w + 1) - return_matrix_value_numeric(image1_numeric, h + 1, w + 1)) / 4.0;
+                u_bar_numeric(h, w) = (return_matrix_value_numeric(u_numeric, h + 1, w) + return_matrix_value_numeric(u_numeric, h, w + 1) + return_matrix_value_numeric(u_numeric, h - 1, w) + return_matrix_value_numeric(u_numeric, h, w - 1)) / 6.0 + (return_matrix_value_numeric(u_numeric, h - 1, w - 1) + return_matrix_value_numeric(u_numeric, h - 1, w + 1) + return_matrix_value_numeric(u_numeric, h + 1, w - 1) + return_matrix_value_numeric(u_numeric, h + 1, w + 1)) / 12.0;
+                v_bar_numeric(h, w) = (return_matrix_value_numeric(v_numeric, h + 1, w) + return_matrix_value_numeric(v_numeric, h, w + 1) + return_matrix_value_numeric(v_numeric, h - 1, w) + return_matrix_value_numeric(v_numeric, h, w - 1)) / 6.0 + (return_matrix_value_numeric(v_numeric, h - 1, w - 1) + return_matrix_value_numeric(v_numeric, h - 1, w + 1) + return_matrix_value_numeric(v_numeric, h + 1, w - 1) + return_matrix_value_numeric(v_numeric, h + 1, w + 1)) / 12.0;
+            }
+        }
+
         std::vector<Eigen::Triplet<ie::NumericType>> final_triplet;
+        std::vector<Eigen::Triplet<ie::NumericType>> rhs_triplet;
         final_triplet.reserve(o.width * o.height * 3);
-        o.datas.resize(2);
+        rhs_triplet.reserve(o.width * o.height * 2);
+        o.datas.resize(4);
         o.datas[0].resize(o.width * o.height);
         o.datas[1].resize(o.width * o.height);
+        o.datas[2].resize(o.width * o.height);
+        o.datas[3].resize(o.width * o.height);
         int index = 0;
         ie::NumericType a2_numeric = ie::NumericType(o.alpha * o.alpha);
         for (int w = 0; w < o.width; w++)
         {
             for (int h = 0; h < o.height; h++)
             {
-                final_triplet.push_back(Eigen::Triplet<ie::NumericType>(index, index, ie::NumericType(0, index) * ie::NumericType(0, index) + a2_numeric));
+                final_triplet.push_back(Eigen::Triplet<ie::NumericType>(index, index, ix_numeric(h, w) * ix_numeric(h, w) + a2_numeric));
                 index++;
             }
         }
@@ -342,7 +398,7 @@ IGL_INLINE void build_lhs_numeric_single(OPTICALData &o)
         {
             for (int h = 0; h < o.height; h++)
             {
-                final_triplet.push_back(Eigen::Triplet<ie::NumericType>(index, index, ie::NumericType(1, index - index2) * ie::NumericType(1, index - index2) + a2_numeric));
+                final_triplet.push_back(Eigen::Triplet<ie::NumericType>(index, index, iy_numeric(h, w) * iy_numeric(h, w) + a2_numeric));
                 index++;
             }
         }
@@ -350,28 +406,55 @@ IGL_INLINE void build_lhs_numeric_single(OPTICALData &o)
         {
             for (int h = 0; h < o.height; h++)
             {
-                final_triplet.push_back(Eigen::Triplet<ie::NumericType>(index2, index2 - o.height * o.width, ie::NumericType(0, index2 - o.height * o.width) * ie::NumericType(1, index2 - o.height * o.width)));
+                final_triplet.push_back(Eigen::Triplet<ie::NumericType>(index2, index2 - o.height * o.width, ix_numeric(h, w) * iy_numeric(h, w)));
                 index2++;
             }
         }
-        Eigen::SparseMatrix<ie::NumericType> result_numeric;
+        index = 0;
+        for (int w = 0; w < o.width; w++)
+        {
+            for (int h = 0; h < o.height; h++)
+            {
+                rhs_triplet.push_back(Eigen::Triplet<ie::NumericType>(index, 0, a2_numeric * u_bar_numeric(h, w) - ix_numeric(h, w) * it_numeric(h, w)));
+                index++;
+            }
+        }
+        for (int w = 0; w < o.width; w++)
+        {
+            for (int h = 0; h < o.height; h++)
+            {
+                rhs_triplet.push_back(Eigen::Triplet<ie::NumericType>(index, 0, a2_numeric * v_bar_numeric(h, w) - iy_numeric(h, w) * it_numeric(h, w)));
+                index++;
+            }
+        }
+
+        Eigen::SparseMatrix<ie::NumericType> result_numeric, rhs_numeric;
         result_numeric.resize(o.width * o.height * 2, o.width * o.height * 2);
         result_numeric.setFromTriplets(final_triplet.begin(), final_triplet.end());
         result_numeric.makeCompressed();
+        rhs_numeric.resize(o.width * o.height * 2, 1);
+        rhs_numeric.setFromTriplets(rhs_triplet.begin(), rhs_triplet.end());
+        rhs_numeric.makeCompressed();
         o.ex = ie::NumericExecutor(result_numeric, 0);
+        o.ex_rhs = ie::NumericExecutor(rhs_numeric, 0);
         o.result_vector.resize(result_numeric.nonZeros(), 0);
+        o.rhs_vector.resize(rhs_numeric.nonZeros(), 0);
         // copy the outer index pointer and inner index pointer to o
         o.L_outer.resize(result_numeric.rows() + 1);
         o.L_inner.resize(result_numeric.nonZeros());
         o.L_outer.assign(result_numeric.outerIndexPtr(), result_numeric.outerIndexPtr() + result_numeric.rows() + 1);
         o.L_inner.assign(result_numeric.innerIndexPtr(), result_numeric.innerIndexPtr() + result_numeric.nonZeros());
+        ie::NumericType::clear_pool();
     }
     t.start();
-    o.datas[0].assign(o.Ix.data(), o.Ix.data() + o.width * o.height);
-    o.datas[1].assign(o.Iy.data(), o.Iy.data() + o.width * o.height);
-    o.ex.ExecuteSingle(o.datas, o.result_vector);
+    o.datas[0].assign(o.image1.data(), o.image1.data() + o.width * o.height);
+    o.datas[1].assign(o.image2.data(), o.image2.data() + o.width * o.height);
+    o.datas[2].assign(o.u.data(), o.u.data() + o.width * o.height);
+    o.datas[3].assign(o.v.data(), o.v.data() + o.width * o.height);
+    o.ex.ExecuteMulti(o.datas, o.result_vector);
+    o.ex_rhs.ExecuteMulti(o.datas, o.rhs_vector);
     t.stop();
-    write_to_file(result_file, "NUMERIC SINGLE COMPUTE SPARSE MATRIX", t.getElapsedTimeInMicroSec(), o.first_called);
+    write_to_file(result_file, "NUMERIC MULTI COMPUTE EVERYTHING", t.getElapsedTimeInMicroSec(), o.first_called);
 }
 
 IGL_INLINE void build_rhs(OPTICALData &o)
@@ -416,20 +499,25 @@ IGL_INLINE void solve_flow(OPTICALData &o)
     {
     case 0:
         build_lhs(o);
+        t.start();
+        build_rhs(o);
+        t.stop();
+        write_to_file(result_file, "BUILDING RHS", t.getElapsedTimeInMicroSec(), o.first_called);
         break;
     case 3:
         build_lhs_numeric_multi(o);
+        t.start();
+        build_rhs(o);
+        t.stop();
+        write_to_file(result_file, "BUILDING RHS", t.getElapsedTimeInMicroSec(), o.first_called);
         break;
     case 4:
-        build_lhs_numeric_single(o);
+        build_lhs_numeric_multi_together(o);
         break;
     default:
         build_lhs(o);
     }
-    t.start();
-    build_rhs(o);
-    t.stop();
-    write_to_file(result_file, "BUILDING RHS", t.getElapsedTimeInMicroSec(), o.first_called);
+
     if (o.first_called)
     {
         pardiso_init(o.pardiso_data);
@@ -451,7 +539,14 @@ IGL_INLINE void solve_flow(OPTICALData &o)
     t.stop();
     write_to_file(result_file, "MKL NUMERIC FACTOR", t.getElapsedTimeInMicroSec(), o.first_called);
     t.start();
-    pardiso_solve(o.pardiso_data, solved.data(), o.rhs.data());
+    if (o.method <= 3)
+    {
+        pardiso_solve(o.pardiso_data, solved.data(), o.rhs.data());
+    }
+    else
+    {
+        pardiso_solve(o.pardiso_data, solved.data(), o.rhs_vector.data());
+    }
     t.stop();
     write_to_file(result_file, "MKL SOLVE", t.getElapsedTimeInMicroSec(), o.first_called);
 

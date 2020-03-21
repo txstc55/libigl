@@ -289,10 +289,10 @@ elif example==2:
     count = 0
     for line in f:
         if not line.startswith("START"):
-            count = count%6
-            if count == 0 or count == 2 or count == 5:
+            count = count%4
+            if count == 3:
                 numeric2_data["ASSEMBLE"] += float(line.split(": ")[1])
-            elif count == 1:
+            elif count == 0:
                 numeric2_data["COMPUTE"] += float(line.split(": ")[1])
             else:
                 numeric2_data["SOLVE"] += float(line.split(": ")[1])

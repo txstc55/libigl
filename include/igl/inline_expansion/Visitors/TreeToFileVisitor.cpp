@@ -30,6 +30,16 @@ void TreeToFileVisitor::generate_all_operation_strings(NumericVisitorTreeHashing
             this->operation_strings.push_back("$");
             this->operation_matrix_ids.push_back({trees.id_to_operation_map[i].first.first});
         }
+        else if (trees.id_to_operation_map[i].second == 's')
+        {
+            string function_string = "";
+            function_string += this->operation_char_to_string[trees.id_to_operation_map[i].second];
+            function_string += "(";
+            function_string += this->operation_strings[trees.id_to_operation_map[i].first.first] + ")";
+            this->operation_strings.push_back(function_string);
+            vector<size_t> tmp(this->operation_matrix_ids[trees.id_to_operation_map[i].first.first]);
+            this->operation_matrix_ids.push_back(tmp);
+        }
         else
         {
             string function_string = "";

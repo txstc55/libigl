@@ -6,19 +6,20 @@
 
 using namespace std;
 
-namespace ie {
+namespace ie
+{
 // vector<tuple<bool, bool, unsigned int, unsigned int, char>> NumericType::memory_pool = {};
 // map<double, int> NumericType::existed_const_positions = {};
 // vector<double> NumericType::const_pool = {};
-NumericPool* NumericType::pool;
+NumericPool *NumericType::pool;
 
-map<NumericType::NodeType, char> NumericType::node_to_op = { { NumericType::Constant, 'c' },
-    { NumericType::Leaf, 'i' },
-    { NumericType::Add, '+' },
-    { NumericType::Subtract, '-' },
-    { NumericType::Divide, '/' },
-    { NumericType::Multiply, '*' }
-};
+map<NumericType::NodeType, char> NumericType::node_to_op = {{NumericType::Constant, 'c'},
+                                                            {NumericType::Leaf, 'i'},
+                                                            {NumericType::Add, '+'},
+                                                            {NumericType::Subtract, '-'},
+                                                            {NumericType::Divide, '/'},
+                                                            {NumericType::Multiply, '*'},
+                                                            {NumericType::Multiply, 's'}};
 
 char NumericType::char_for_operation()
 {
@@ -42,7 +43,7 @@ NumericType::NumericType(double v)
     NumericType::pool->tree_node_pool.push_back(*this);
 }
 
-NumericType::NumericType(const NumericType& n)
+NumericType::NumericType(const NumericType &n)
 {
     this->matrix_id = n.matrix_id;
     this->data_id = n.data_id;
@@ -57,24 +58,26 @@ NumericType::NumericType()
 {
 }
 
-void NumericType::set_pool(NumericPool* p)
+void NumericType::set_pool(NumericPool *p)
 {
     NumericType::pool = p;
 }
 
-void NumericType::accept(NumericVisitor& nv, size_t data_position)
+void NumericType::accept(NumericVisitor &nv, size_t data_position)
 {
     nv.visit(*this, data_position);
 }
 
 // the operations will avoid using excessive amount of prentices
 // left is this and right is v, always
-NumericType NumericType::operator+(const NumericType& v) const
+NumericType NumericType::operator+(const NumericType &v) const
 {
-    if (this->operation == Constant && this->const_value == 0) {
+    if (this->operation == Constant && this->const_value == 0)
+    {
         return v;
     }
-    if (v.operation == Constant && v.const_value == 0) {
+    if (v.operation == Constant && v.const_value == 0)
+    {
         return (*this);
     }
     NumericType parent = NumericType();
@@ -86,9 +89,10 @@ NumericType NumericType::operator+(const NumericType& v) const
     return parent;
 }
 
-NumericType NumericType::operator-(const NumericType& v) const
+NumericType NumericType::operator-(const NumericType &v) const
 {
-    if (v.operation == Constant && v.const_value == 0) {
+    if (v.operation == Constant && v.const_value == 0)
+    {
         return (*this);
     }
     NumericType parent = NumericType();
@@ -100,12 +104,14 @@ NumericType NumericType::operator-(const NumericType& v) const
     return parent;
 }
 
-NumericType NumericType::operator*(const NumericType& v) const
+NumericType NumericType::operator*(const NumericType &v) const
 {
-    if (this->operation == Constant && this->const_value == 1) {
+    if (this->operation == Constant && this->const_value == 1)
+    {
         return v;
     }
-    if (v.operation == Constant && v.const_value == 1) {
+    if (v.operation == Constant && v.const_value == 1)
+    {
         return (*this);
     }
     NumericType parent = NumericType();
@@ -117,9 +123,10 @@ NumericType NumericType::operator*(const NumericType& v) const
     return parent;
 }
 
-NumericType NumericType::operator/(const NumericType& v) const
+NumericType NumericType::operator/(const NumericType &v) const
 {
-    if (v.operation == Constant && v.const_value == 1) {
+    if (v.operation == Constant && v.const_value == 1)
+    {
         return (*this);
     }
     NumericType parent = NumericType();
@@ -131,16 +138,30 @@ NumericType NumericType::operator/(const NumericType& v) const
     return parent;
 }
 
-NumericType NumericType::operator+=(const NumericType& v)
+NumericType NumericType::operator+=(const NumericType &v)
 {
     return (*this) = (*this) + v;
 }
 
+NumericType NumericType::sqrt() const
+{
+    NumericType parent = NumericType();
+    parent.self_index = NumericType::pool->tree_node_pool.size();
+    parent.left_index = this->self_index;
+    parent.right_index = -1;
+    parent.operation = Sqrt;
+    NumericType::pool->tree_node_pool.push_back(parent);
+    return parent;
+}
+
 NumericType NumericType::operator*(const double v)
 {
-    if (v == 1.0) {
+    if (v == 1.0)
+    {
         return (*this);
-    } else {
+    }
+    else
+    {
         NumericType constant = NumericType(v);
         return ((*this) * constant);
     }
@@ -148,30 +169,36 @@ NumericType NumericType::operator*(const double v)
 
 NumericType NumericType::operator/(const double v)
 {
-    if (v == 1.0) {
+    if (v == 1.0)
+    {
         return (*this);
-    } else {
+    }
+    else
+    {
         NumericType constant = NumericType(v);
         return ((*this) / constant);
     }
 }
 
-NumericType operator*(const double v, const NumericType& n)
+NumericType operator*(const double v, const NumericType &n)
 {
-    if (v == 1.0) {
+    if (v == 1.0)
+    {
         return (n);
-    } else {
+    }
+    else
+    {
         NumericType constant = NumericType(v);
         return (constant * n);
     }
 }
 
-bool NumericType::operator<=(const NumericType& v) const
+bool NumericType::operator<=(const NumericType &v) const
 {
     return false;
 }
 
-bool NumericType::operator<(const NumericType& v) const
+bool NumericType::operator<(const NumericType &v) const
 {
     return false;
 }
@@ -190,8 +217,9 @@ NumericType NumericType::change_data_id(size_t i)
     return *this;
 }
 
-void NumericType::clear_pool() {
+void NumericType::clear_pool()
+{
     NumericType::pool->clear_pool();
 }
 
-}
+} // namespace ie

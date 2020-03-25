@@ -49,6 +49,7 @@ endif()
 add_subdirectory("709_SLIM")
 add_subdirectory("205_Laplacian")
 add_subdirectory("801_OpticalFlow")
+add_subdirectory("802_CotMatrix")
 
 #######################
 if(NOT (LIBIGL_WITH_OPENGL AND LIBIGL_WITH_OPENGL_GLFW) )

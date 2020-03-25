@@ -95,7 +95,10 @@ IGL_INLINE void cotmatrix_numeric(COTMATRIXData &cd)
             }
         }
         L.setFromTriplets(IJV.begin(), IJV.end());
+        L.makeCompressed();
         cd.ex = ie::NumericExecutor(L, 0);
+        cd.result.resize(L.nonZeros());
+        cd.first_called = false;
     }
     cd.datas[0].assign(cd.V.data(), cd.V.data() + cd.V.rows() * cd.V.cols());
     cd.ex.ExecuteMulti(cd.datas, cd.result);

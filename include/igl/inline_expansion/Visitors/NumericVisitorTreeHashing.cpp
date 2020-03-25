@@ -78,6 +78,7 @@ void NumericVisitorTreeHashing::visit(NumericType &n, size_t data_position)
     switch (n.operation)
     {
     case NumericType::Constant:
+    {
         if (NumericVisitorTreeHashing::seen_consts_position.find(n.const_value) != NumericVisitorTreeHashing::seen_consts_position.end())
         {
             // if we have seen this const it means it has been recorded not only in
@@ -98,7 +99,9 @@ void NumericVisitorTreeHashing::visit(NumericType &n, size_t data_position)
             this->data_array_operation_ids[data_position] = new_operation_id;
         }
         break;
+    }
     case NumericType::Leaf:
+    {
         if (this->operation_to_id_map.find({{n.matrix_id, 0}, 'i'}) != this->operation_to_id_map.end())
         {
             // if we have seen this matrix's stuffs, we need to set the operation, also push the data_id into the array
@@ -116,27 +119,12 @@ void NumericVisitorTreeHashing::visit(NumericType &n, size_t data_position)
             this->data_array_used_data_ids[data_position].push_back(n.data_id);
         }
         break;
-    case NumericType::Sqrt:
-        (*NumericType::pool).tree_node_pool[n.left_index].accept((*this), data_position);
-        size_t left_operation_id = this->data_array_operation_ids[data_position];
-        // now check if the operation exists
-        if (this->operation_to_id_map.find({{left_operation_id, 0}, n.operation}) != this->operation_to_id_map.end())
-        {
-            // found this operation, store it in data_array_operation_ids
-            this->data_array_operation_ids[data_position] = this->operation_to_id_map[{{left_operation_id, 0}, n.char_for_operation()}];
-        }
-        else
-        {
-            // never seen this kind of tree before, add to map
-            size_t new_operation_id = write_to_operation_map(left_operation_id, 0, n.char_for_operation());
-            // set the operation in data_array_operation_ids
-            this->data_array_operation_ids[data_position] = new_operation_id;
-        }
-        break;
+    }
     case NumericType::Add:
     case NumericType::Subtract:
     case NumericType::Multiply:
     case NumericType::Divide:
+    {
         // we need to first visit left then visit right
         // this is because we will always store the current operation id in data_array_operation_ids[data_position]
         // we will recursively access it and rewrite it
@@ -161,6 +149,27 @@ void NumericVisitorTreeHashing::visit(NumericType &n, size_t data_position)
             // set the operation in data_array_operation_ids
             this->data_array_operation_ids[data_position] = new_operation_id;
         }
+        break;
+    }
+    case NumericType::Sqrt:
+    {
+        (*NumericType::pool).tree_node_pool[n.left_index].accept((*this), data_position);
+        size_t left_operation_id = this->data_array_operation_ids[data_position];
+        // now check if the operation exists
+        if (this->operation_to_id_map.find({{left_operation_id, 0}, n.operation}) != this->operation_to_id_map.end())
+        {
+            // found this operation, store it in data_array_operation_ids
+            this->data_array_operation_ids[data_position] = this->operation_to_id_map[{{left_operation_id, 0}, n.char_for_operation()}];
+        }
+        else
+        {
+            // never seen this kind of tree before, add to map
+            size_t new_operation_id = write_to_operation_map(left_operation_id, 0, n.char_for_operation());
+            // set the operation in data_array_operation_ids
+            this->data_array_operation_ids[data_position] = new_operation_id;
+        }
+        break;
+    }
     }
 }
 

@@ -5,7 +5,8 @@
 #include <string>
 using namespace std;
 
-namespace ie {
+namespace ie
+{
 mutex NumericVisitorTreeHashing::can_write_const_map;
 mutex NumericVisitorTreeHashing::can_write_operation_map;
 
@@ -17,21 +18,23 @@ NumericVisitorTreeHashing::NumericVisitorTreeHashing(unsigned int data_size)
     this->data_array_used_data_ids.resize(data_size);
 }
 
-size_t NumericVisitorTreeHashing::write_to_constant_map(const double& const_value)
+size_t NumericVisitorTreeHashing::write_to_constant_map(const double &const_value)
 {
-    while (!this->can_write_const_map.try_lock()) {
+    while (!this->can_write_const_map.try_lock())
+    {
         // while some other visit function is writing to constant map
         // we wait
     }
     // when loop exited we have the access to write
 
     // we need to check if other visitor actually inserted this value mean while
-    if (this->seen_consts_position.find(const_value) != this->seen_consts_position.end()) {
+    if (this->seen_consts_position.find(const_value) != this->seen_consts_position.end())
+    {
         this->can_write_const_map.unlock();
         return seen_consts_position[const_value];
     }
     // insert it into the map, now we have seen this constant
-    this->seen_consts_position.insert({ const_value, this->seen_consts.size() });
+    this->seen_consts_position.insert({const_value, this->seen_consts.size()});
     this->seen_consts.push_back(const_value);
     size_t position = this->seen_consts.size() - 1;
     // operation done, free the lock
@@ -41,24 +44,26 @@ size_t NumericVisitorTreeHashing::write_to_constant_map(const double& const_valu
     return position;
 }
 
-size_t NumericVisitorTreeHashing::write_to_operation_map(const size_t& left_operation_id, const size_t& right_operation_id, const char& current_operation)
+size_t NumericVisitorTreeHashing::write_to_operation_map(const size_t &left_operation_id, const size_t &right_operation_id, const char &current_operation)
 {
-    while (!this->can_write_operation_map.try_lock()) {
+    while (!this->can_write_operation_map.try_lock())
+    {
         // while some other visit function is writing to operation map
         // we wait
     }
     // now claim the operation map write access
 
     // check if other visotor actually inserted this operation
-    if (this->operation_to_id_map.find({ { left_operation_id, right_operation_id }, current_operation }) != this->operation_to_id_map.end()) {
+    if (this->operation_to_id_map.find({{left_operation_id, right_operation_id}, current_operation}) != this->operation_to_id_map.end())
+    {
         this->can_write_operation_map.unlock();
-        return this->operation_to_id_map[ { { left_operation_id, right_operation_id }, current_operation }];
+        return this->operation_to_id_map[{{left_operation_id, right_operation_id}, current_operation}];
     }
     // cout<<"creating operation "<<this->id_to_operation_map.size()<<": "<<left_operation_id<<" "<<right_operation_id<<" "<<current_operation<<"\n";
     // we initialize this into operation_to_id_map
-    this->operation_to_id_map.insert({ { { left_operation_id, right_operation_id }, current_operation }, this->id_to_operation_map.size() });
+    this->operation_to_id_map.insert({{{left_operation_id, right_operation_id}, current_operation}, this->id_to_operation_map.size()});
     // push that to id_to_operation_map
-    this->id_to_operation_map.push_back({ { left_operation_id, right_operation_id }, current_operation });
+    this->id_to_operation_map.push_back({{left_operation_id, right_operation_id}, current_operation});
     // release the lock
     // cout<<"Exiting creation of operation "<<this->id_to_operation_map.size()-1<<"\n";
     size_t position = this->id_to_operation_map.size() - 1;
@@ -67,18 +72,22 @@ size_t NumericVisitorTreeHashing::write_to_operation_map(const size_t& left_oper
     return position;
 }
 
-void NumericVisitorTreeHashing::visit(NumericType& n, size_t data_position)
+void NumericVisitorTreeHashing::visit(NumericType &n, size_t data_position)
 {
     // cout<<data_position<<"| ";
-    switch (n.operation) {
+    switch (n.operation)
+    {
     case NumericType::Constant:
-        if (NumericVisitorTreeHashing::seen_consts_position.find(n.const_value) != NumericVisitorTreeHashing::seen_consts_position.end()) {
+        if (NumericVisitorTreeHashing::seen_consts_position.find(n.const_value) != NumericVisitorTreeHashing::seen_consts_position.end())
+        {
             // if we have seen this const it means it has been recorded not only in
             // seen consts positions, seen consts
             // but also in operations, so we just need to extract that info from operation_to_id_map and store it in
             // data_array_operation_ids
-            this->data_array_operation_ids[data_position] = this->operation_to_id_map[ { { this->seen_consts_position[n.const_value], 0 }, n.char_for_operation() }];
-        } else {
+            this->data_array_operation_ids[data_position] = this->operation_to_id_map[{{this->seen_consts_position[n.const_value], 0}, n.char_for_operation()}];
+        }
+        else
+        {
             // if we have not seen this const
             // we need to initialize everything and create a new operation
             // first we create the position mapping in seen_consts_position
@@ -90,18 +99,38 @@ void NumericVisitorTreeHashing::visit(NumericType& n, size_t data_position)
         }
         break;
     case NumericType::Leaf:
-        if (this->operation_to_id_map.find({ { n.matrix_id, 0 }, 'i' }) != this->operation_to_id_map.end()) {
+        if (this->operation_to_id_map.find({{n.matrix_id, 0}, 'i'}) != this->operation_to_id_map.end())
+        {
             // if we have seen this matrix's stuffs, we need to set the operation, also push the data_id into the array
-            this->data_array_operation_ids[data_position] = this->operation_to_id_map[ { { n.matrix_id, 0 }, n.char_for_operation() }];
+            this->data_array_operation_ids[data_position] = this->operation_to_id_map[{{n.matrix_id, 0}, n.char_for_operation()}];
             // now push the data_id
             this->data_array_used_data_ids[data_position].push_back(n.data_id);
-        } else {
+        }
+        else
+        {
             // create the operation
             size_t new_operation_id = write_to_operation_map(n.matrix_id, 0, n.char_for_operation());
             // second, set that to the operation id for this position
             this->data_array_operation_ids[data_position] = new_operation_id;
             // now push the data_id
             this->data_array_used_data_ids[data_position].push_back(n.data_id);
+        }
+        break;
+    case NumericType::Sqrt:
+        (*NumericType::pool).tree_node_pool[n.left_index].accept((*this), data_position);
+        size_t left_operation_id = this->data_array_operation_ids[data_position];
+        // now check if the operation exists
+        if (this->operation_to_id_map.find({{left_operation_id, 0}, n.operation}) != this->operation_to_id_map.end())
+        {
+            // found this operation, store it in data_array_operation_ids
+            this->data_array_operation_ids[data_position] = this->operation_to_id_map[{{left_operation_id, 0}, n.char_for_operation()}];
+        }
+        else
+        {
+            // never seen this kind of tree before, add to map
+            size_t new_operation_id = write_to_operation_map(left_operation_id, 0, n.char_for_operation());
+            // set the operation in data_array_operation_ids
+            this->data_array_operation_ids[data_position] = new_operation_id;
         }
         break;
     case NumericType::Add:
@@ -120,10 +149,13 @@ void NumericVisitorTreeHashing::visit(NumericType& n, size_t data_position)
         (*NumericType::pool).tree_node_pool[n.right_index].accept((*this), data_position);
         size_t right_operation_id = this->data_array_operation_ids[data_position];
         // now check if the operation exists
-        if (this->operation_to_id_map.find({ { left_operation_id, right_operation_id }, n.operation }) != this->operation_to_id_map.end()) {
+        if (this->operation_to_id_map.find({{left_operation_id, right_operation_id}, n.operation}) != this->operation_to_id_map.end())
+        {
             // found this operation, store it in data_array_operation_ids
-            this->data_array_operation_ids[data_position] = this->operation_to_id_map[ { { left_operation_id, right_operation_id }, n.char_for_operation() }];
-        } else {
+            this->data_array_operation_ids[data_position] = this->operation_to_id_map[{{left_operation_id, right_operation_id}, n.char_for_operation()}];
+        }
+        else
+        {
             // never seen this kind of tree before, add to map
             size_t new_operation_id = write_to_operation_map(left_operation_id, right_operation_id, n.char_for_operation());
             // set the operation in data_array_operation_ids
@@ -132,15 +164,14 @@ void NumericVisitorTreeHashing::visit(NumericType& n, size_t data_position)
     }
 }
 
-
-
-void NumericVisitorTreeHashing::accept(TreeToFileVisitor& visitor)
+void NumericVisitorTreeHashing::accept(TreeToFileVisitor &visitor)
 {
     visitor.visit(*this);
 }
 
-void NumericVisitorTreeHashing::accept(TreeToIndexVisitor& visitor) {
+void NumericVisitorTreeHashing::accept(TreeToIndexVisitor &visitor)
+{
     visitor.visit(*this);
 }
 
-}
+} // namespace ie

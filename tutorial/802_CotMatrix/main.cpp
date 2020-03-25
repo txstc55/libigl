@@ -6,6 +6,7 @@
 #include <igl/cotmatrix.h>
 #include <igl/doublearea.h>
 #include <igl/Timer.h>
+#include <igl/squared_edge_lengths.h>
 
 std::string mesh_name = "";
 Eigen::MatrixXd V, U;
@@ -93,11 +94,21 @@ int main(int argc, char *argv[])
   igl::COTMATRIXData cd;
   cd.V = V;
   cd.F = F;
-  igl::cotmatrix_numeric(cd);
+  igl::cotmatrix_numeric_intermediate(cd);
+
+  // Eigen::MatrixXd l2;
+  // igl::squared_edge_lengths(V, F, l2);
+  // for (int i=0; i<l2.cols(); i++){
+  //   for (int j = 0; j<l2.rows(); j++){
+  //     std::cout<<l2(j, i)<<" "<<cd.datas[0][i*l2.rows()+j]<<"\n";
+  //   }
+  // }
+
+
   t.start();
   for (int i = 0; i < 100; i++)
   {
-    igl::cotmatrix_numeric(cd);
+    igl::cotmatrix_numeric_intermediate(cd);
   }
   t.stop();
   std::cout << "Our method took: " << t.getElapsedTimeInMicroSec() / 100 << " microseconds on average\n";

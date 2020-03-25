@@ -19,7 +19,7 @@ map<NumericType::NodeType, char> NumericType::node_to_op = {{NumericType::Consta
                                                             {NumericType::Subtract, '-'},
                                                             {NumericType::Divide, '/'},
                                                             {NumericType::Multiply, '*'},
-                                                            {NumericType::Multiply, 's'}};
+                                                            {NumericType::Sqrt, 's'}};
 
 char NumericType::char_for_operation()
 {

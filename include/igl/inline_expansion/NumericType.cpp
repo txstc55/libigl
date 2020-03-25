@@ -148,7 +148,7 @@ NumericType NumericType::sqrt() const
     NumericType parent = NumericType();
     parent.self_index = NumericType::pool->tree_node_pool.size();
     parent.left_index = this->self_index;
-    parent.right_index = -1;
+    parent.right_index = 0;
     parent.operation = Sqrt;
     NumericType::pool->tree_node_pool.push_back(parent);
     return parent;
